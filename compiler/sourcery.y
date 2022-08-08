@@ -101,7 +101,7 @@ literals: bool_literal
 literals: string_literal
 binary_exps: idOrSay add idOrSay
 binary_exps: idOrSay subtract idOrSay
-binary_exps: idOrSay comma idOrSay
+//binary_exps: idOrSay comma idOrSay
 binary_exps: idOrSay and idOrSay
 binary_exps: idOrSay or idOrSay
 binary_exps: idOrSay bigger idOrSay
