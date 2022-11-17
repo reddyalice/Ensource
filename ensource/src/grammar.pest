@@ -1,0 +1,34 @@
+WHITESPACE = _{" "}
+indent = _{ "\t" | "----"}
+identifier = @{ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
+integer_literal = @{ASCII_DIGIT+ ~"i" | ASCII_DIGIT+}
+short_literal = @{ASCII_DIGIT+ ~"s"}
+char_literal = @{"'" ~ ANY  ~ "'"| ASCII_DIGIT+ ~"c"}
+long_literal = @{ASCII_DIGIT+ ~"l"}
+float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "f"}
+double_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "d"}
+single_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "s"}
+bool_literal = @{"true" | "false" }
+string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+mal = { "crystal " | "entropic " }
+privacy = {"forall " | "mine " }
+target = {"golem" | "whisper" }
+
+literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | "(" ~ sigil_dec ~ ")" | "(" ~say ~")" }
+dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | sigil_dec | (&print ~ say) | (!identifier ~ say) | ( "(" ~dec_or_say ~ ")")}
+args = {say ~ ("," ~ say)*}
+type_def = {":" ~ identifier}
+pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
+rtrn = {"->" ~ (dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
+do_or_return = { (rtrn ~ NEWLINE) | (":" ~ doo+) }
+sigil_dec = { ("sigil ")?  ~ (mal)? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))}
+print = { "say " ~ string_literal ~ ("<-" ~ args)?}
+lambda = {"embed" ~ type_def? ~ ("<-" ~ pars)? ~ ((":" ~ doo+) | rtrn)
+			|  "(" ~lambda ~ ")"}
+cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier)
+				 |((lambda | identifier) ~ "<-" ~ args)))}
+doo = _{ NEWLINE ~ indent+ ~ ( rtrn | dec_or_say )?}
+say = _{ lambda | cast | print | literals }
+sigil_d = {(((privacy ~ target) | (target ~ privacy) | privacy | target )? ~sigil_dec)}
+
+file = _{NEWLINE | ((  sigil_d | (!sigil_dec ~ dec_or_say) ) ~ file)*}
