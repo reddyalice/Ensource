@@ -14,21 +14,25 @@ mal = { "crystal " | "entropic " }
 privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
 
-literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | "(" ~ sigil_dec ~ ")" | "(" ~say ~")" }
-dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | sigil_dec | (&print ~ say) | (!identifier ~ say) | ( "(" ~dec_or_say ~ ")")}
+literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | "(" ~ sigil_asg ~ ")" | "(" ~say ~")" }
+dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | (!identifier ~ say) | ( "(" ~dec_or_say ~ ")")}
 args = {say ~ ("," ~ say)*}
 type_def = {":" ~ identifier}
 pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
 rtrn = {"->" ~ (dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
-do_or_return = { (rtrn ~ NEWLINE) | (":" ~ doo+) }
-sigil_dec = { ("sigil ")?  ~ (mal)? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))}
+do_or_return = _{(":" ~ doo+) | rtrn }
+sigil_asg = { ("sigil ")?  ~ (mal)? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))}
 print = { "say " ~ string_literal ~ ("<-" ~ args)?}
-lambda = {"embed" ~ type_def? ~ ("<-" ~ pars)? ~ ((":" ~ doo+) | rtrn)
+lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return))
 			|  "(" ~lambda ~ ")"}
 cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier)
 				 |((lambda | identifier) ~ "<-" ~ args)))}
 doo = _{ NEWLINE ~ indent+ ~ ( rtrn | dec_or_say )?}
 say = _{ lambda | cast | print | literals }
-sigil_d = {(((privacy ~ target) | (target ~ privacy) | privacy | target )? ~sigil_dec)}
 
-file = _{NEWLINE | ((  sigil_d | (!sigil_dec ~ dec_or_say) ) ~ file)*}
+attach = {"attach " ~ string_literal}
+decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
+sigil_dec = {decoration? ~ sigil_asg}
+spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
+
+file = _{NEWLINE | ((  spell_dec | attach | sigil_dec | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*}
