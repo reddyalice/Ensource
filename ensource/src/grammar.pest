@@ -14,8 +14,9 @@ mal = { "crystal " | "entropic " }
 privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
 
-literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | "(" ~ sigil_asg ~ ")" | "(" ~say ~")" }
-dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | (!identifier ~ say) | ( "(" ~dec_or_say ~ ")")}
+literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
+			| "(" ~ sigil_asg ~ ")" | "(" ~terranary ~ ")" | "(" ~say ~")" }
+dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | terranary | sigil_asg | (&print ~ say) | (!identifier ~ say) | ( "(" ~dec_or_say ~ ")")}
 args = {say ~ ("," ~ say)*}
 type_def = {":" ~ identifier}
 pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
@@ -28,8 +29,8 @@ lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return))
 cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier)
 				 |((lambda | identifier) ~ "<-" ~ args)))}
 doo = _{ NEWLINE ~ indent+ ~ ( rtrn | dec_or_say )?}
+terranary = { say ~ "?" ~ say ~ ":" ~ say }
 say = _{ lambda | cast | print | literals }
-
 attach = {"attach " ~ string_literal}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 sigil_dec = {decoration? ~ sigil_asg}
