@@ -1,5 +1,6 @@
+crystal a ^= 1
 @ Test thing
-a ? s : b
+a = ( a ? 2 : 3)
 spell : i32 sadas -> cast y -> a
 attach "sa"
 golem crystal a : i8 = 3
@@ -7,3 +8,4 @@ cast -> embed:
 	embed:
 		a : i32, a : f32 = 1,1.
 		-> ("aa") 
+

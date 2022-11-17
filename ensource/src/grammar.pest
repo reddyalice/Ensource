@@ -9,21 +9,46 @@ long_literal = @{ASCII_DIGIT+ ~"l"}
 float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "f"}
 double_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "d"}
 single_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "s"}
-bool_literal = @{"true" | "false" }
+bool_literal = @{"true" | "false" | "1b" | "0b" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+add = {"+"} add_assign = {"+="}
+sub = {"-"} sub_assign = {"-="}
+and = {"&&" | "and"} and_assign = { "&=" }
+or = {"||" | "or"} or_assign = { "|=" }
+bigger = {">" | "above" }
+lesser = {"<" | "below" }
+mul = {"*"} mul_assign = {"*="}
+divide = {"/"} div_assign = {"/="}
+equal = {"==" | "is"}
+not_equal = {"!=" | "is not"}
+power = {"^"} pow_assign = {"^="}
+b_equal = {">="}
+l_equal = {"<="}
+
+
 mal = { "crystal " | "entropic " }
 privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
 
+
+binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal}
+assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
+assign_calc = {mal? ~ identifier ~ assign_ops ~ say}
+binary_calc = {say ~ (binary_ops ~ say)}
+calc = _{ binary_calc | terranary}
+
 literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
-			| "(" ~ sigil_asg ~ ")" | "(" ~terranary ~ ")" | "(" ~say ~")" }
-dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | terranary | sigil_asg | (&print ~ say) | (!identifier ~ say) | ( "(" ~dec_or_say ~ ")")}
-args = {say ~ ("," ~ say)*}
+			| "(" ~calc ~ ")"  }
+            
+dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")")}
+args = {(calc | say) ~ ("," ~ (calc | say))*}
 type_def = {":" ~ identifier}
 pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
-rtrn = {"->" ~ (dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
+rtrn = {"->" ~ (calc | dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
 do_or_return = _{(":" ~ doo+) | rtrn }
-sigil_asg = { ("sigil ")?  ~ (mal)? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))}
+sigil_asg = {( "sigil "?  ~ mal? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars)))
+				| assign_calc}
 print = { "say " ~ string_literal ~ ("<-" ~ args)?}
 lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return))
 			|  "(" ~lambda ~ ")"}
@@ -31,10 +56,11 @@ cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier)
 				 |((lambda | identifier) ~ "<-" ~ args)))}
 doo = _{ NEWLINE ~ indent+ ~ ( rtrn | dec_or_say )?}
 terranary = { say ~ "?" ~ say ~ ":" ~ say }
-say = _{ lambda | cast | print | literals }
+
+say = _{ lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
 attach = {"attach " ~ string_literal}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
-sigil_dec = {decoration? ~ sigil_asg}
+sigil_dec = {decoration? ~ (!assign_calc ~ sigil_asg)}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
 
-file = _{NEWLINE | ((  spell_dec | attach | sigil_dec | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*}
+file = _{NEWLINE | ((  spell_dec | attach | sigil_dec | assign_calc | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*}
