@@ -30,7 +30,7 @@ incr = _{"++"}
 decr = _{"--"}
 not_s = _{"not" | "!"}
 sign_s = _{"sign" | "&" }
-unsign_s = _{"unsign"}
+unsign_s = _{"unsign" | "*"}
 pointer = {"*"}
 
 say_or_calc = _{(calc | say)}
@@ -48,7 +48,7 @@ pre = _ {pre_incr | pre_decr}
 not = {not_s ~ say}
 neg = {"-" ~ say}
 sign = {sign_s ~ say}
-unsign = {(unsign_s | "*") ~ say}
+unsign = {(unsign_s) ~ say}
 transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ pointer?) 
 		                    | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
 
@@ -61,8 +61,8 @@ binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |no
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
 assign_calc = {mal? ~ identifier ~ assign_ops ~ say}
 binary_calc = {say ~ (binary_ops ~ say)}
-calc = _{ transmute | binary_calc | terranary | post | pre | neg | not | sign | unsign }
-terranary = { say ~ "?" ~ say ~ ":" ~ say }
+calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign }
+ternary = { say ~ "?" ~ say ~ ":" ~ say }
 
 literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
 			| "(" ~calc ~ ")"  }
