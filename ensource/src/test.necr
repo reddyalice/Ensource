@@ -1,3 +1,6 @@
+i = transmute f32 * <- 1+1
+i++
+a = sign i
 crystal a ^= 1
 @ Test thing
 a = ( a ? 2 : 3)
@@ -8,4 +11,3 @@ cast -> embed:
 	embed:
 		a : i32, a : f32 = 1,1.
 		-> ("aa") 
-
