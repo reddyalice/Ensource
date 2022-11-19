@@ -10,4 +10,4 @@ golem crystal a : i8 = 3
 cast -> embed:
 	embed:
 		a : i32, a : f32 = 1,1.
-		-> ("aa") 
+	-----> ("aa") 
