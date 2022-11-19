@@ -1,4 +1,9 @@
-@comment and and a empty line
+if e:
+	-> b
+else if 1 > 1 -> e
+else -> a
+
+i = i[1]
 
 i = transmute f32 * <- 1+1
 i++
@@ -9,6 +14,7 @@ a = ( a ? 2 : 3)
 spell : i32 sadas -> cast y -> a
 attach "sa"
 golem crystal a : i8 = 3
+
 cast -> embed:
 	embed:
 		a : i32, a : f32 = 1,1.

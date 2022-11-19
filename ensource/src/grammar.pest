@@ -54,6 +54,11 @@ transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ (pointer | array)?
 		                    | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
+if_case = {"if " ~ (calc | say) ~ do_or_return ~ else_case?}
+else_case  = {NEWLINE ~ "else " ~ (if_case | do_or_return)}
+
+
+
 mal = { "crystal " | "entropic " }
 privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
@@ -66,10 +71,10 @@ binary_calc = {say ~ (binary_ops ~ say)}
 calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign | index}
 ternary = { say ~ "?" ~ say ~ ":" ~ say }
 
-literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
-			| "(" ~calc ~ ")"  }
+literals = _{bool_literal | string_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
+			| identifier | "(" ~calc ~ ")"  }
             
-dec_or_say = _{ (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")")}
+dec_or_say = _{ if_case | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")")}
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
 pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
