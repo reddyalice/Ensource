@@ -1,15 +1,15 @@
-use pest::{Parser};
+use pest::Parser;
 use std::fs;
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct EnsourceParser;
 
-pub fn parse(filename : &str){
+pub fn parse(filename: &str) {
     let unparsed = fs::read_to_string(filename).expect("Couldn't read");
     println!("{:#?}", unparsed);
     let source = EnsourceParser::parse(Rule::file, &unparsed);
-    for pair in source{ 
+    for pair in source {
         println!("{:#?}", pair);
     }
 }
