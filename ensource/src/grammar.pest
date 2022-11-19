@@ -32,6 +32,7 @@ not_s = _{"not" | "!"}
 sign_s = _{"sign" | "&" }
 unsign_s = _{"unsign" | "*"}
 pointer = {"*"}
+array = { "[" ~ integer_literal? ~ "]" }
 
 say_or_calc = _{(calc | say)}
 
@@ -49,19 +50,20 @@ not = {not_s ~ say}
 neg = {"-" ~ say}
 sign = {sign_s ~ say}
 unsign = {(unsign_s) ~ say}
-transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ pointer?) 
+transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ (pointer | array)?) 
 		                    | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
+index = { say ~ "[" ~ say_or_calc ~ "]"}
 
 mal = { "crystal " | "entropic " }
 privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
-type_def = {":" ~ identifier ~ pointer?}
+type_def = {":" ~ identifier ~ (pointer | array)?}
 
 binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal}
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
 assign_calc = {mal? ~ identifier ~ assign_ops ~ say}
 binary_calc = {say ~ (binary_ops ~ say)}
-calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign }
+calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign | index}
 ternary = { say ~ "?" ~ say ~ ":" ~ say }
 
 literals = _{identifier | string_literal | bool_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
@@ -88,4 +90,4 @@ decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 sigil_dec = {decoration? ~ (!assign_calc ~ sigil_asg)}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
 
-file = _{COMMENT ~ file | NEWLINE ~ file | ((  spell_dec | attach | sigil_dec | assign_calc | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*}
+file = _{COMMENT ~file | NEWLINE ~ file | (((spell_dec | attach | sigil_dec | assign_calc | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*)}
