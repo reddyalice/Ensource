@@ -47,7 +47,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensource"
+name = "ensourcel"
 version = "0.1.0"
 dependencies = [
  "pest",
