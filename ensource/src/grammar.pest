@@ -88,4 +88,4 @@ decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 sigil_dec = {decoration? ~ (!assign_calc ~ sigil_asg)}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
 
-file = _{NEWLINE | ((  spell_dec | attach | sigil_dec | assign_calc | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*}
+file = _{NEWLINE ~ file | ((  spell_dec | attach | sigil_dec | assign_calc | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*}
