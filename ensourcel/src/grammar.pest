@@ -11,6 +11,7 @@ double_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "d"}
 single_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "s"}
 bool_literal = @{"true" | "false" | "1b" | "0b" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+file_type = @{"necr" | "sorc" | "wiza"}
 
 add = {"+"} add_assign = {"+="}
 sub = {"-"} sub_assign = {"-="}
@@ -75,7 +76,7 @@ binary_calc = {say ~ (binary_ops ~ say)}
 calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign | index}
 ternary = { say ~ "?" ~ say ~ ":" ~ say }
 
-literals = _{bool_literal | string_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | identifier | "(" ~calc ~ ")"  }
+literals = _{bool_literal | string_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
             
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
@@ -87,12 +88,17 @@ print = { "say " ~ string_literal ~ ("<-" ~ args)?}
 lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return)) | "(" ~lambda ~ ")"}
 cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier) | ((lambda | identifier) ~ "<-" ~ args)))}
 
+jjs = _{ indent | NEWLINE}
+element_ident = {identifier ~ ":"}
+ritual_args = {(element_ident? ~ say_or_calc) ~ jjs* ~ ("," ~ jjs* ~ (element_ident? ~ say_or_calc))*}
+ritual_const = { identifier ~"{" ~ jjs* ~ ritual_args* ~jjs* ~"}"}
+
 n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn |  dec_or_say)? ~ doo? ~ DROP}
 doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn |  dec_or_say )? ~ doo?) | doo)}
 ctx = {PUSH(indent*)}
 
 say = _{ lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
-attach = {"attach " ~ string_literal}
+attach = {"attach " ~ file_type ~ identifier}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
 
