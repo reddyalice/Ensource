@@ -50,24 +50,17 @@ not = {not_s ~ say}
 neg = {"-" ~ say}
 sign = {sign_s ~ say}
 unsign = {(unsign_s) ~ say}
-transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ (pointer | array)?) 
-		                    | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
+transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ (pointer | array)?) | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
 dec_or_say = _{ cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")")}
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
-else_case  = {NEWLINE ~ "else " ~ (if_case | do_or_return)}
-channeling = {"channel " ~ ( 
-							 (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc)
-                            | (identifier ~ (":" | "in ") ~ say)
-                            | say_or_calc)
-                            ~ do_or_return}
+else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
+channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
 cond = _{if_case | channeling}
 wait = {"wait " ~ integer_literal}
 stop = {("stop " ~ say_or_calc) | "stop"}
-skip = {("skip " ~ "for" ~ integer_literal) 
-  		|("skip " ~ say_or_calc ~ ("for" ~ integer_literal)?)
-        | ("skip")}
+skip = {("skip " ~ "for" ~ integer_literal) | ("skip " ~ say_or_calc ~ ("for" ~ integer_literal)?) | ("skip")}
 breaking = _{skip | stop | wait}
 
 mal = { "crystal " | "entropic " }
@@ -82,22 +75,20 @@ binary_calc = {say ~ (binary_ops ~ say)}
 calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign | index}
 ternary = { say ~ "?" ~ say ~ ":" ~ say }
 
-literals = _{bool_literal | string_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal 
-			| identifier | "(" ~calc ~ ")"  }
+literals = _{bool_literal | string_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | identifier | "(" ~calc ~ ")"  }
             
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
 pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
 rtrn = {"->" ~ (calc | dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
-do_or_return = _{(":" ~ doo+) | rtrn }
-sigil_asg = {( "sigil "?  ~ mal? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars)))
-				| assign_calc}
+do_or_return = _{n_doo | rtrn }
+sigil_asg = {( "sigil "?  ~ mal? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))) | assign_calc}
 print = { "say " ~ string_literal ~ ("<-" ~ args)?}
-lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return))
-			|  "(" ~lambda ~ ")"}
-cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier)
-				 |((lambda | identifier) ~ "<-" ~ args)))}
-doo = _{ NEWLINE ~ indent+ ~ ( rtrn | dec_or_say )?}
+lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return)) | "(" ~lambda ~ ")"}
+cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier) | ((lambda | identifier) ~ "<-" ~ args)))}
+
+n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn | dec_or_say)? ~ doo? ~ DROP}
+doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn | dec_or_say )? ~ doo?) | doo)}
 
 say = _{ lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
 attach = {"attach " ~ string_literal}
