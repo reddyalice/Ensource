@@ -31,4 +31,4 @@ i += 1
 i = 4
 cast asd -> embed: i32 <- asd:
 	if t:
-		v : i32, d : f32 = 2,2.
+		v : i32, d : f32 = 2,2
