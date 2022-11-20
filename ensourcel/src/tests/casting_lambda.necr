@@ -1,0 +1,3 @@
+cast asd -> embed: i32 <- asd:
+	if t:
+		v : i32, d : f32 = 1,1.

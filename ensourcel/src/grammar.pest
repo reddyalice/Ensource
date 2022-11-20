@@ -53,7 +53,7 @@ unsign = {(unsign_s) ~ say}
 transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ (pointer | array)?) | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
-dec_or_say = _{ cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")")}
+dec_or_say = _{ spell_dec | attach |  cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
@@ -82,18 +82,18 @@ args = {say_or_calc ~ ("," ~ say_or_calc)*}
 pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
 rtrn = {"->" ~ (calc | dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
 do_or_return = _{n_doo | rtrn }
-sigil_asg = {( "sigil "?  ~ mal? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))) | assign_calc}
+sigil_asg = {(decoration? ~ "sigil "?  ~ mal? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))) | assign_calc}
 print = { "say " ~ string_literal ~ ("<-" ~ args)?}
 lambda = {("embed" ~ type_def? ~ ("<-" ~ pars)? ~ (do_or_return)) | "(" ~lambda ~ ")"}
 cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier) | ((lambda | identifier) ~ "<-" ~ args)))}
 
-n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn | dec_or_say)? ~ doo? ~ DROP}
-doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn | dec_or_say )? ~ doo?) | doo)}
+n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn |  dec_or_say)? ~ doo? ~ DROP}
+doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn |  dec_or_say )? ~ doo?) | doo)}
+ctx = {PUSH(indent*)}
 
 say = _{ lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
 attach = {"attach " ~ string_literal}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
-sigil_dec = {decoration? ~ (!assign_calc ~ sigil_asg)}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
 
-file = _{COMMENT ~file | NEWLINE ~ file | (((spell_dec | attach | sigil_dec | assign_calc | (!sigil_asg ~ dec_or_say) ) ~ (NEWLINE ~ file | EOI))*)}
+file = _{ctx ~ COMMENT ~ DROP ~file | NEWLINE ~ indent* ~ file | (((ctx ~  dec_or_say ) ~ DROP ~ (NEWLINE ~ file | EOI))*)}

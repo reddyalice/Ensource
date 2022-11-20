@@ -6,5 +6,5 @@ mod parser;
 use parser::parse;
 
 fn main() {
-    parse("src/test.necr");
+    parse("src/tests/general_test.necr");
 }
