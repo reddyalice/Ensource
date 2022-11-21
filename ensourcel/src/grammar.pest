@@ -3,15 +3,14 @@ COMMENT = _{"@" ~ (!("@" | NEWLINE) ~ANY)* ~ ("@" | NEWLINE)}
 indent = _{ "\t" | "----"}
 identifier = @{ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
 integer_literal = @{ASCII_DIGIT+ ~"i" | ASCII_DIGIT+}
-short_literal = @{ASCII_DIGIT+ ~"s"}
 char_literal = @{"'" ~ ANY  ~ "'"| ASCII_DIGIT+ ~"c"}
-long_literal = @{ASCII_DIGIT+ ~"l"}
-float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "f"}
-double_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "d"}
-single_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "s"}
+float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | "." ~ ASCII_DIGIT+}
 bool_literal = @{"true" | "false" | "1b" | "0b" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 file_type = @{"necr" | "sorc" | "wiza"}
+primitive = {"char" | "int" |  "i" | "bool" | "b" | "float" | "fixed" | "f" }
+
+typee = {(primitive | identifier) ~ integer_literal? ~ (pointer? ~ array?) }
 
 add = {"+"} add_assign = {"+="}
 sub = {"-"} sub_assign = {"-="}
@@ -51,10 +50,12 @@ not = {not_s ~ say}
 neg = {"-" ~ say}
 sign = {sign_s ~ say}
 unsign = {(unsign_s) ~ say}
-transmute = {"transmute" ~((say_or_calc ~ "->" ~ identifier ~ (pointer | array)?) | (identifier ~ pointer? ~ "<-" ~ say_or_calc))}
+transmute = {"transmute" ~((say_or_calc ~ "->" ~ typee) | (typee ~ "<-" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
-dec_or_say = _{ spell_dec | attach |  cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
+
+
+dec_or_say = _{ ritual_dec |  spell_dec | attach |  cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
@@ -67,7 +68,7 @@ breaking = _{skip | stop | wait}
 mal = { "crystal " | "entropic " }
 privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
-type_def = {":" ~ identifier ~ (pointer | array)?}
+type_def = _{":" ~ typee}
 
 binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal}
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
@@ -76,7 +77,7 @@ binary_calc = {say ~ (binary_ops ~ say)}
 calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign | index}
 ternary = { say ~ "?" ~ say ~ ":" ~ say }
 
-literals = _{bool_literal | string_literal | single_literal | double_literal | float_literal | short_literal | long_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
+literals = _{bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
             
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
@@ -92,6 +93,11 @@ jjs = _{ indent | NEWLINE}
 element_ident = {identifier ~ ":"}
 ritual_args = {(element_ident? ~ say_or_calc) ~ jjs* ~ ("," ~ jjs* ~ (element_ident? ~ say_or_calc))*}
 ritual_const = { identifier ~"{" ~ jjs* ~ ritual_args* ~jjs* ~"}"}
+ritual_pars = { (":" ~ NEWLINE ~ PEEK_ALL ~ indent ~  element_ident ~ typee ~ (NEWLINE ~ PEEK_ALL ~ indent ~ (element_ident ~ typee)?)*)
+				| ("{" ~ jjs* ~ (typee ~ ("," ~ jjs* ~  (typee))* )* ~jjs* ~"}" )}
+ritual_dec = {decoration? ~ "ritual " ~ identifier ~ ritual_pars?}
+
+
 
 n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn |  dec_or_say)? ~ doo? ~ DROP}
 doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn |  dec_or_say )? ~ doo?) | doo)}
