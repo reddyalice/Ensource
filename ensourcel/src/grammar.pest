@@ -8,7 +8,7 @@ float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | "." ~ ASCII_DIGIT+}
 bool_literal = @{"true" | "false" | "1b" | "0b" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 file_type = @{"necr" | "sorc" | "wiza"}
-primitive = {"char" | "int" |  "i" | "bool" | "b" | "float" | "fixed" | "f" }
+primitive = {"char" | "c" | "int" |  "i" | "bool" | "b" | "float" | "fixed" | "f" | "string" | "str" | "s"}
 
 typee = {(primitive | identifier) ~ integer_literal? ~ (pointer? ~ array?) }
 
@@ -32,7 +32,7 @@ not_s = _{"not" | "!"}
 sign_s = _{"sign" | "&" }
 unsign_s = _{"unsign" | "*"}
 pointer = {"*"}
-array = { "[" ~ integer_literal? ~ "]" }
+array = { "[" ~ integer_literal? ~ ("," ~ integer_literal)* ~ "]" }
 
 say_or_calc = _{(calc | say)}
 
@@ -72,10 +72,10 @@ type_def = _{":" ~ typee}
 
 binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal}
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
-assign_calc = {mal? ~ identifier ~ assign_ops ~ say}
-binary_calc = {say ~ (binary_ops ~ say)}
-calc = _{ transmute | binary_calc | ternary | post | pre | neg | not | sign | unsign | index}
-ternary = { say ~ "?" ~ say ~ ":" ~ say }
+assign_calc = {mal? ~ identifier ~ assign_ops ~ say_or_calc}
+binary_calc = {(post | pre | neg | not | sign | unsign | index | say) ~ (binary_ops ~ say_or_calc)+}
+calc = _{ ternary | binary_calc | post | pre | neg | not | sign | unsign | index}
+ternary = { ( binary_calc | post | pre | neg | not | sign | unsign | index | say) ~ "?" ~ say_or_calc ~ ":" ~ say_or_calc }
 
 literals = _{bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
             
@@ -103,7 +103,7 @@ n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn |  dec_or_say)? ~ do
 doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn |  dec_or_say )? ~ doo?) | doo)}
 ctx = {PUSH(indent*)}
 
-say = _{ lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
+say = _{ transmute | lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
 attach = {"attach " ~ file_type ~ identifier}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
