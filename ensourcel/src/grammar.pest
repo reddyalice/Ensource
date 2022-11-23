@@ -7,8 +7,9 @@ char_literal = @{"'" ~ ANY  ~ "'"| ASCII_DIGIT+ ~"c"}
 float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | "." ~ ASCII_DIGIT+}
 bool_literal = @{"true" | "false" | "1b" | "0b" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+hex_literal = @{"0x" ~ ('0'..'f')+} 
 file_type = @{"necr" | "sorc" | "wiza"}
-primitive = {"char" | "c" | "int" |  "i" | "bool" | "b" | "float" | "fixed" | "f" | "string" | "str" | "s"}
+primitive = @{"bool" | "b" | "char" | "c" | ("u"? ~ ("int" |  "i" | "float" | "fixed" | "f")) | "string" | "str" | "s"}
 
 typee = {(primitive | identifier) ~ integer_literal? ~ (pointer? ~ array?) }
 
@@ -50,12 +51,11 @@ not = {not_s ~ say}
 neg = {"-" ~ say}
 sign = {sign_s ~ say}
 unsign = {(unsign_s) ~ say}
-transmute = {"transmute" ~((say_or_calc ~ "->" ~ typee) | (typee ~ "<-" ~ say_or_calc))}
+transmute = {"transmute"? ~((say ~ "as" ~ typee) | (typee ~ "of" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
 
 
-dec_or_say = _{ ritual_dec |  spell_dec | attach |  cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
@@ -74,10 +74,9 @@ binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |no
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
 assign_calc = {mal? ~ identifier ~ assign_ops ~ say_or_calc}
 binary_calc = {(post | pre | neg | not | sign | unsign | index | say) ~ (binary_ops ~ say_or_calc)+}
-calc = _{ ternary | binary_calc | post | pre | neg | not | sign | unsign | index}
 ternary = { ( binary_calc | post | pre | neg | not | sign | unsign | index | say) ~ "?" ~ say_or_calc ~ ":" ~ say_or_calc }
 
-literals = _{bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
+literals = _{hex_literal | bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
             
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
@@ -103,9 +102,14 @@ n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ PUSH(indent) ~ (rtrn |  dec_or_say)? ~ do
 doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn |  dec_or_say )? ~ doo?) | doo)}
 ctx = {PUSH(indent*)}
 
-say = _{ transmute | lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
+say = _{lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
 attach = {"attach " ~ file_type ~ identifier}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
-spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return}
+spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~pars)? ~ do_or_return?}
 
-file = _{ctx ~ COMMENT ~ DROP ~file | NEWLINE ~ indent* ~ file | (((ctx ~  dec_or_say ) ~ DROP ~ (NEWLINE ~ file | EOI))*)}
+calc = _{  transmute | ternary | binary_calc | post | pre | neg | not | sign | unsign | index}
+dec_or_say = _{ ritual_dec | cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
+in_file_dec = _{spell_dec | attach | dec_or_say}
+
+
+file = _{ctx ~ COMMENT ~ DROP ~file | NEWLINE ~ indent* ~ file | (((ctx ~  in_file_dec ) ~ DROP ~ (NEWLINE ~ file | EOI))*)}
