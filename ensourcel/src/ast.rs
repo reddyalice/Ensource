@@ -1,4 +1,4 @@
-use std::{vec, boxed::Box};
+use std::boxed::Box;
 use std::mem;
 
 enum FileType{
@@ -18,8 +18,7 @@ enum Target{
     Whisper
 }
 
-trait Expr{
-}
+trait Expr{}
 
 
 struct TypeDec{
@@ -139,4 +138,12 @@ pub struct Ritual{
     content : Vec<Par>
 }
 
+pub struct ConditionalCase{
+    condition : Box<dyn Expr>,
+    true_case : Vec<Box<dyn Expr>>,
+    false_case : Vec<Box<dyn Expr>>
+}
+
+
 impl Expr for Ritual{}
+impl Expr for ConditionalCase{}
