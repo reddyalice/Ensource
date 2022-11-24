@@ -1,7 +1,6 @@
 use pest::Parser;
 use std::fs;
 
-
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct EnsourceLParser;
