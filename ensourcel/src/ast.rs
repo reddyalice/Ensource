@@ -161,11 +161,18 @@ pub struct ChannelListFor {
     context: Vec<Expr>,
 }
 
+pub struct Lambda {
+    rtn_type: TypeDec,
+    pars: Vec<Par>,
+    context: Vec<Expr>,
+}
+
 pub enum Expr {
     ConditionalCase(Box<ConditionalCase>),
     ChannelWhile(Box<ChannelWhile>),
     ChannelStandartFor(Box<ChannelStandartFor>),
     ChannelListFor(Box<ChannelListFor>),
+    Lambda(Lambda),
     String(&'static str),
     Bool(bool),
     Char(char),
