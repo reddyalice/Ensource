@@ -54,13 +54,13 @@ unsign = {(unsign_s) ~ say}
 transmute = {"transmute"? ~((say ~ "as" ~ typee) | (typee ~ "of" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
-
+//TODO matching needs to be done
 
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
 cond = _{if_case | channeling}
-wait = {"wait " ~ integer_literal}
+wait = {"wait " ~ say_or_calc}
 stop = {("stop " ~ say_or_calc) | "stop"}
 skip = {("skip " ~ "for" ~ integer_literal) | ("skip " ~ say_or_calc ~ ("for" ~ integer_literal)?) | ("skip")}
 breaking = _{skip | stop | wait}
@@ -86,7 +86,7 @@ ft_pars = {identifier ~ type_def ~("," ~ identifier ~ type_def)*}
 
 rtrn = {"->" ~ (calc | dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
 do_or_return = _{n_doo | rtrn }
-sigil_asg = {(decoration? ~ "sigil "?  ~ mal? ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))) | assign_calc}
+sigil_asg = {(decoration? ~ mal? ~ "sigil "  ~ identifier ~ type_def?)  | (decoration? ~ mal? ~ "sigil "?  ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))) | assign_calc}
 print = { "say " ~ string_literal ~ ("<-" ~ args)?}
 lambda = {("embed" ~ type_def? ~ ("<-" ~ ft_pars)? ~ (do_or_return)) | "(" ~lambda ~ ")"}
 cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier) | ((lambda | identifier) ~ "<-" ~ args)))}

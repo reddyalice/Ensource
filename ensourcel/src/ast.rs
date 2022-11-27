@@ -1,30 +1,35 @@
 use std::boxed::Box;
 use std::mem;
 
-enum FileType {
+pub enum FileType {
     Necr,
     Sorc,
     Wiza,
     Hexy,
 }
 
-enum Privacy {
+pub enum Privacy {
     Forall,
     Mine,
 }
 
-enum Target {
+pub enum Target {
     Golem,
     Whisper,
 }
 
-struct TypeDec {
+pub enum Mal{
+    Entropic, 
+    Crystal
+}
+
+pub struct TypeDec {
     base_type: Type,
     pointer: bool,
     dimensions: Vec<usize>,
 }
 
-struct Type {
+pub struct Type {
     identifier: &'static str,
     signed: bool,
     size: usize,
@@ -99,6 +104,14 @@ impl Type {
             size: str_size + 1,
         }
     }
+
+    fn get_void() -> Type {
+        Type {
+            identifier: "void",
+            signed: false,
+            size: 0,
+        }
+    }
 }
 
 pub struct File {
@@ -132,6 +145,7 @@ pub struct Par {
     par_type: TypeDec,
 }
 
+
 pub struct Ritual {
     identifier: &'static str,
     content: Vec<Par>,
@@ -156,7 +170,7 @@ pub struct ChannelStandartFor {
 }
 
 pub struct ChannelListFor {
-    identifier: &'static str,
+    identifier: Expr,
     list: Expr,
     context: Vec<Expr>,
 }
@@ -164,15 +178,88 @@ pub struct ChannelListFor {
 pub struct Lambda {
     rtn_type: TypeDec,
     pars: Vec<Par>,
-    context: Vec<Expr>,
+    context: Vec<Expr>
 }
 
-pub enum Expr {
+pub struct Cast{
+    args : Vec<Expr>,
+    cast : Expr
+}
+
+pub struct Sigil{
+    privacy: Privacy,
+    target: Target,
+    mal : Mal,
+    pars : Vec<Par>,
+    args : Vec<Expr>
+}
+
+pub struct Print{
+    output : &'static str,
+    args : Vec<Expr>
+}
+
+pub struct BinaryOp{
+    left : Expr,
+    operation : BinaryOperations,
+    right : Expr
+}
+
+
+pub struct UnaryOp{
+    operation : UnaryOps,
+    exp : Expr
+}
+
+pub struct Transmute{
+    old_type : TypeDec,
+    expr : Expr,
+    new_type : TypeDec
+}
+
+pub struct Index{
+    expr : Expr,
+    index : Expr
+}
+
+pub struct Wait{
+    expr : Expr
+}
+
+pub struct Stop{
+    condition : Expr
+}
+
+pub struct Skip{
+    condition : Expr,
+    time : usize
+}
+
+pub struct Expr{
+    context : i8,
+    expr_type : TypeDec,
+    exp : ExprType
+}
+
+
+
+pub enum ExprType {
     ConditionalCase(Box<ConditionalCase>),
     ChannelWhile(Box<ChannelWhile>),
     ChannelStandartFor(Box<ChannelStandartFor>),
     ChannelListFor(Box<ChannelListFor>),
-    Lambda(Lambda),
+    Lambda(Box<Lambda>),
+    Cast(Box<Cast>),
+    Sigil(Box<Sigil>),
+    Print(Box<Print>),
+    BinaryOp(Box<BinaryOp>),
+    UnaryOp(Box<UnaryOp>),
+    Transmute(Box<Transmute>),
+    Index(Box<Index>),
+    Wait(Box<Wait>),
+    Stop(Box<Stop>),
+    Skip(Box<Stop>),
+    Identifier(&'static str),
     String(&'static str),
     Bool(bool),
     Char(char),
@@ -180,4 +267,31 @@ pub enum Expr {
     Fixed(i32),
     Integer(i32),
     None,
+}
+
+pub enum BinaryOperations{
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Pow,
+    And,
+    Or,
+    Bigger,
+    Lesser,
+    Equal,
+    NotEqual,
+    BEqual,
+    LEqual
+}
+
+pub enum UnaryOps{
+    PreIncr,
+    PostIncr,
+    PreDecr,
+    PostDecr,
+    Not,
+    Neg,
+    Sign,
+    Unsign
 }
