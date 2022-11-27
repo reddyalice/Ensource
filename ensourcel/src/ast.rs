@@ -18,9 +18,6 @@ enum Target{
     Whisper
 }
 
-trait Expr{}
-
-
 struct TypeDec{
     base_type : Type,
     pointer : bool,
@@ -106,7 +103,8 @@ pub struct File{
     file_type : FileType,
     spells : Vec<Spell>,
     attachments : Vec<Attachment>,
-    content : Vec<Box<dyn Expr>>
+    rituals : Vec<Ritual>,
+    content : Vec<Expr>
 }
 
 pub struct Attachment{
@@ -124,7 +122,7 @@ pub struct Spell{
     target : Target,
     context  : i8,
     pars : Vec<Par>,
-    content : Vec<Box<dyn Expr>>
+    content : Vec<Expr>
 }
 
 
@@ -139,11 +137,41 @@ pub struct Ritual{
 }
 
 pub struct ConditionalCase{
-    condition : Box<dyn Expr>,
-    true_case : Vec<Box<dyn Expr>>,
-    false_case : Vec<Box<dyn Expr>>
+    condition : Expr,
+    true_case : Vec<Expr>,
+    false_case : Vec<Expr>
+}
+
+pub struct ChannelWhile{
+    condition : Expr,
+    context : Vec<Expr>
+}
+
+pub struct ChannelStandartFor{
+    identifier : &'static str,
+    condition : Expr,
+    increment : Expr,
+    context : Vec<Expr>
 }
 
 
-impl Expr for Ritual{}
-impl Expr for ConditionalCase{}
+pub struct ChannelListFor{
+    identifier : &'static str,
+    list : Expr,
+    context : Vec<Expr>
+}
+
+
+pub enum Expr{
+    ConditionalCase(Box<ConditionalCase>),
+    ChannelWhile(Box<ChannelWhile>),
+    ChannelStandartFor(Box<ChannelStandartFor>),
+    ChannelListFor(Box<ChannelListFor>),
+    String(&'static str),
+    Bool(bool),
+    Char(char),
+    Float(f32),
+    Fixed(i32),
+    Integer(i32),
+    None
+}

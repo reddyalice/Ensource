@@ -111,8 +111,8 @@ decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~ ft_pars)? ~ do_or_return?}
 
 calc = _{  transmute | ternary | binary_calc | post | pre | neg | not | sign | unsign | index}
-dec_or_say = _{ ritual_dec | cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
-in_file_dec = _{spell_dec | attach | dec_or_say}
+dec_or_say = _{cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
+in_file_dec = _{spell_dec | attach | ritual_dec | dec_or_say}
 
 
 file = _{indent* ~ COMMENT ~file | NEWLINE ~ indent* ~ file | (((ctx ~  in_file_dec ) ~ DROP ~ (NEWLINE ~ file | EOI))*)}
