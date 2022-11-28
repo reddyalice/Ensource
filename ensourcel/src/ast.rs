@@ -20,6 +20,7 @@ pub enum Privacy {
 pub enum Target {
     Golem,
     Whisper,
+    None
 }
 
 pub enum Mal{

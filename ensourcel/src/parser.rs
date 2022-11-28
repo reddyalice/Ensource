@@ -79,6 +79,49 @@ fn parse_rules(rules : Pairs<Rule>, file : &mut File){
             Rule::spell_dec => {
                 //file.spells.push(parse_spell(base_ctx, line, pair))
             },
+            Rule::ritual_dec => {
+                let mut inner = pair.into_inner();
+                let mut privacy : Privacy = Privacy::Forall;
+                let mut target : Target = Target::None;
+                let mut identifier = "";
+
+                loop{
+                    let p = inner.next();
+                    match  p {
+                        Some(p1) => {
+                            match p1.as_rule() {
+                                Rule::privacy => {
+                                    privacy = match p1.as_span().as_str() {
+                                        "forall" => Privacy::Forall,
+                                        "mine" => Privacy::Mine,
+                                        _ => Privacy::Forall
+                                    } 
+                                },
+                                Rule::target => {
+                                    target = match p1.as_span().as_str() {
+                                        "golem" => Target::Golem,
+                                        "whisper" => Target::Whisper,
+                                        _ => Target::None
+                                    } 
+                                },
+                                Rule::identifier => {
+                                    identifier = p1.as_span().as_str();
+                                },
+                                Rule::ritual_pars => {
+                                    println!("{:#?}", p1);
+                                }
+                                _ => ()
+                            }
+                        },
+                        
+                        None => break
+                    }
+                }
+
+
+
+
+            },//file.rituals.push(parse_ritual(base_ctx, line, pair)),
             _ => ()
         }
     }
@@ -87,6 +130,11 @@ fn parse_rules(rules : Pairs<Rule>, file : &mut File){
 /* TODO 
 fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
 
+}*/
+
+
+/*fn parse_ritual(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Ritual{
+    let mut inner = pair.into_inner();
 }*/
 
 
