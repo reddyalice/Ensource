@@ -1,5 +1,5 @@
 
-use pest::{Parser, iterators::Pairs, error::Error};
+use pest::{Parser, iterators::{Pairs, Pair}, error::Error};
 use std::{fs, path::Path};
 use crate::ast::*;
 
@@ -47,7 +47,6 @@ pub fn parse_file(filepath: &str, mut files : Vec<File>) {
     let path = Path::new(filepath);
 
     let unparsed = fs::read_to_string(path).expect("Couldn't read");
-    println!("Unparsed : {:#?}", unparsed);
     let source = EnsourceLParser::parse(Rule::file, &unparsed);
 
     files.push(create_file(path));
@@ -62,14 +61,10 @@ pub fn parse_file(filepath: &str, mut files : Vec<File>) {
         None => panic!("File doesn't exists")
     }
     
-   
-
-    
-    
 }
 
 fn parse_rules(rules : Pairs<Rule>, file : &mut File){
-    let mut baseCtx : usize = 0;
+    let mut base_ctx : usize = 0;
     
     for pair in rules {
         //println!("{:#?}", pair);
@@ -78,45 +73,45 @@ fn parse_rules(rules : Pairs<Rule>, file : &mut File){
         match pair.as_rule() {
             Rule::ctx => {
                 let str = pair.as_span().as_str();
-                baseCtx = str.matches("\t").count();
+                base_ctx = str.matches("\t").count();
             },
-            Rule::attach => {
-                
-                let mut inner = pair.into_inner();
-                let file_type = match inner.next()
-                {
-                        Some(p) => match p.as_span().as_str(){
-                            "necr" => FileType::Necr,
-                            "wiza" => FileType::Wiza,
-                            "sorc" => FileType::Sorc,
-                            "hexy" => FileType::Hexy,
-                            _ => panic!("No proper type given for {:#?}", line) },
-                        None => panic!("No type given for {:#?}", line)
-                };
-                let file_name = match inner.next()
-                {
-                    Some(p) => p.as_span().as_str(),
-                    None => panic!("No filename given for {:#?}", line)
-                };
-                let identifier = match inner.next()
-                {
-                    Some(p) => p.as_span().as_str(),
-                    None => file_name
-                };
-
-                file.attachments.push(Attachment{
-                    identifier : String::from(identifier),
-                    file_name : String::from(file_name),
-                    file_type,
-                    context : baseCtx
-                });
-
-            },
+            Rule::attach => file.attachments.push(parse_attachment(base_ctx, line, pair)),
             Rule::spell_dec => {
 
             }
             
             _ => ()
         }
+    }
+}
+
+fn parse_attachment(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Attachment{
+    let mut inner = pair.into_inner();
+    let file_type = match inner.next()
+    {
+            Some(p) => match p.as_span().as_str(){
+                "necr" => FileType::Necr,
+                "wiza" => FileType::Wiza,
+                "sorc" => FileType::Sorc,
+                "hexy" => FileType::Hexy,
+                _ => panic!("No proper type given for {:#?}", line) },
+            None => panic!("No type given for {:#?}", line)
+    };
+    let file_name = match inner.next()
+    {
+        Some(p) => p.as_span().as_str(),
+        None => panic!("No filename given for {:#?}", line)
+    };
+    let identifier = match inner.next()
+    {
+        Some(p) => p.as_span().as_str(),
+        None => file_name
+    };
+
+    Attachment{
+        identifier : String::from(identifier),
+        file_name : String::from(file_name),
+        file_type,
+        context : base_ctx
     }
 }
