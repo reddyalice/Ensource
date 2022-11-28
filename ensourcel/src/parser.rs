@@ -1,5 +1,5 @@
 
-use pest::{Parser, iterators::{Pairs, Pair}, error::Error};
+use pest::{Parser, iterators::{Pairs, Pair}};
 use std::{fs, path::Path};
 use crate::ast::*;
 
@@ -77,13 +77,18 @@ fn parse_rules(rules : Pairs<Rule>, file : &mut File){
             },
             Rule::attach => file.attachments.push(parse_attachment(base_ctx, line, pair)),
             Rule::spell_dec => {
-
-            }
-            
+                //file.spells.push(parse_spell(base_ctx, line, pair))
+            },
             _ => ()
         }
     }
 }
+
+/* TODO 
+fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
+
+}*/
+
 
 fn parse_attachment(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Attachment{
     let mut inner = pair.into_inner();

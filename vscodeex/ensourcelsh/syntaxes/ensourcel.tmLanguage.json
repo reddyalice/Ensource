@@ -3,9 +3,6 @@
 	"name": "EnsourceL",
 	"patterns": [
 		{
-			"include": "#comments"
-		},
-		{
 			"include": "#keywords"
 		},
 		{
@@ -13,9 +10,6 @@
 		}
 	],
 	"repository": {
-		"comments" : {
-
-		},
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.ensourcel",
