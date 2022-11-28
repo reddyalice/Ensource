@@ -1,6 +1,10 @@
 use std::boxed::Box;
 use std::mem;
 
+
+pub const byeSize : u8 = 8;
+pub const memSize : usize = mem::size_of::<usize>();
+
 pub enum FileType {
     Necr,
     Sorc,
@@ -24,15 +28,15 @@ pub enum Mal{
 }
 
 pub struct TypeDec {
-    base_type: Type,
-    pointer: bool,
-    dimensions: Vec<usize>,
+    pub base_type: Type,
+    pub pointer: bool,
+    pub dimensions: Vec<usize>,
 }
 
 pub struct Type {
-    identifier: &'static str,
-    signed: bool,
-    size: usize,
+    pub identifier: String,
+    pub signed: bool,
+    pub size: usize,
 }
 
 impl Type {
@@ -46,7 +50,7 @@ impl Type {
                     s *= d;
                 }
             } else {
-                s = mem::size_of::<usize>();
+                s = memSize;
             }
             size += s;
         }
@@ -59,7 +63,7 @@ impl Type {
 
     fn float() -> Type {
         Type {
-            identifier: "f",
+            identifier: String::from("f"),
             signed: true,
             size: 4,
         }
@@ -67,7 +71,7 @@ impl Type {
 
     fn fixed() -> Type {
         Type {
-            identifier: "fx",
+            identifier: String::from("fx"),
             signed: true,
             size: 4,
         }
@@ -75,7 +79,7 @@ impl Type {
 
     fn int() -> Type {
         Type {
-            identifier: "i",
+            identifier: String::from("i"),
             signed: true,
             size: 4,
         }
@@ -83,7 +87,7 @@ impl Type {
 
     fn char() -> Type {
         Type {
-            identifier: "c",
+            identifier: String::from("c"),
             signed: true,
             size: 1,
         }
@@ -91,7 +95,7 @@ impl Type {
 
     fn bool() -> Type {
         Type {
-            identifier: "b",
+            identifier: String::from("b"),
             signed: false,
             size: 1,
         }
@@ -99,7 +103,7 @@ impl Type {
 
     fn str(str_size: usize) -> Type {
         Type {
-            identifier: "s",
+            identifier: String::from("s"),
             signed: false,
             size: str_size + 1,
         }
@@ -107,7 +111,7 @@ impl Type {
 
     fn get_void() -> Type {
         Type {
-            identifier: "void",
+            identifier: String::from("void"),
             signed: false,
             size: 0,
         }
@@ -115,128 +119,128 @@ impl Type {
 }
 
 pub struct File {
-    identifier: &'static str,
-    file_type: FileType,
-    spells: Vec<Spell>,
-    attachments: Vec<Attachment>,
-    rituals: Vec<Ritual>,
-    content: Vec<Expr>,
+    pub identifier: String,
+    pub file_type: FileType,
+    pub spells: Vec<Spell>,
+    pub attachments: Vec<Attachment>,
+    pub rituals: Vec<Ritual>,
+    pub content: Vec<Expr>,
 }
 
 pub struct Attachment {
-    identifier: &'static str,
-    file_name: &'static str,
-    file_type: FileType,
-    context: i8,
+    pub identifier: String,
+    pub file_name: String,
+    pub file_type: FileType,
+    pub context: usize,
 }
 
 pub struct Spell {
-    identifier: &'static str,
-    rtn_type: TypeDec,
-    privacy: Privacy,
-    target: Target,
-    context: i8,
-    pars: Vec<Par>,
-    content: Vec<Expr>,
+    pub identifier: String,
+    pub rtn_type: TypeDec,
+    pub privacy: Privacy,
+    pub target: Target,
+    pub context: usize,
+    pub pars: Vec<Par>,
+    pub content: Vec<Expr>,
 }
 
 pub struct Par {
-    identifier: &'static str,
-    par_type: TypeDec,
+    pub identifier: String,
+    pub par_type: TypeDec,
 }
 
 
 pub struct Ritual {
-    identifier: &'static str,
-    content: Vec<Par>,
+    pub identifier: String,
+    pub content: Vec<Par>,
 }
 
 pub struct ConditionalCase {
-    condition: Expr,
-    true_case: Vec<Expr>,
-    false_case: Vec<Expr>,
+    pub condition: Expr,
+    pub true_case: Vec<Expr>,
+    pub false_case: Vec<Expr>,
 }
 
 pub struct ChannelWhile {
-    condition: Expr,
-    context: Vec<Expr>,
+    pub condition: Expr,
+    pub context: Vec<Expr>,
 }
 
 pub struct ChannelStandartFor {
-    identifier: &'static str,
-    condition: Expr,
-    increment: Expr,
-    context: Vec<Expr>,
+    pub identifier: String,
+    pub condition: Expr,
+    pub increment: Expr,
+    pub context: Vec<Expr>,
 }
 
 pub struct ChannelListFor {
-    identifier: Expr,
-    list: Expr,
-    context: Vec<Expr>,
+    pub identifier: Expr,
+    pub list: Expr,
+    pub context: Vec<Expr>,
 }
 
 pub struct Lambda {
-    rtn_type: TypeDec,
-    pars: Vec<Par>,
-    context: Vec<Expr>
+    pub rtn_type: TypeDec,
+    pub pars: Vec<Par>,
+    pub context: Vec<Expr>
 }
 
 pub struct Cast{
-    args : Vec<Expr>,
-    cast : Expr
+    pub args : Vec<Expr>,
+    pub cast : Expr
 }
 
 pub struct Sigil{
-    privacy: Privacy,
-    target: Target,
-    mal : Mal,
-    pars : Vec<Par>,
-    args : Vec<Expr>
+    pub privacy: Privacy,
+    pub target: Target,
+    pub mal : Mal,
+    pub pars : Vec<Par>,
+    pub args : Vec<Expr>
 }
 
 pub struct Print{
-    output : &'static str,
-    args : Vec<Expr>
+    pub output : String,
+    pub args : Vec<Expr>
 }
 
 pub struct BinaryOp{
-    left : Expr,
-    operation : BinaryOperations,
-    right : Expr
+    pub left : Expr,
+    pub operation : BinaryOperations,
+    pub right : Expr
 }
 
 
 pub struct UnaryOp{
-    operation : UnaryOps,
-    exp : Expr
+    pub operation : UnaryOps,
+    pub exp : Expr
 }
 
 pub struct Transmute{
-    old_type : TypeDec,
-    expr : Expr,
-    new_type : TypeDec
+    pub old_type : TypeDec,
+    pub expr : Expr,
+    pub new_type : TypeDec
 }
 
 pub struct Index{
-    expr : Expr,
-    index : Expr
+    pub expr : Expr,
+    pub index : Expr
 }
 
 pub struct Wait{
-    expr : Expr
+    pub expr : Expr
 }
 
 pub struct Stop{
-    condition : Expr
+    pub condition : Expr
 }
 
 pub struct Skip{
-    condition : Expr,
-    time : usize
+    pub condition : Expr,
+    pub time : usize
 }
 
 pub struct Expr{
-    context : i8,
+    context : usize,
     expr_type : TypeDec,
     exp : ExprType
 }
@@ -259,8 +263,8 @@ pub enum ExprType {
     Wait(Box<Wait>),
     Stop(Box<Stop>),
     Skip(Box<Stop>),
-    Identifier(&'static str),
-    String(&'static str),
+    Identifier(String),
+    String(String),
     Bool(bool),
     Char(char),
     Float(f32),
