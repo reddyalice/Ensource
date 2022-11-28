@@ -42,7 +42,7 @@ fn create_file(filepath : &Path) -> File{
 }
 
 
-pub fn parse(filepath: &str, mut files : Vec<File>) {
+pub fn parse_file(filepath: &str, mut files : Vec<File>) {
 
     let path = Path::new(filepath);
 
@@ -55,8 +55,8 @@ pub fn parse(filepath: &str, mut files : Vec<File>) {
     match files.last_mut() {
         Some(file) =>{
             match source {
-                Ok(r) => parse_file(r, file),
-                Err(e) => print!("Failed to parse because of {}", e)
+                Ok(rules) => parse_rules(rules, file),
+                Err(e) => print!("Failed to parse because of {:#?}", e)
             }
         },
         None => panic!("File doesn't exists")
@@ -68,15 +68,49 @@ pub fn parse(filepath: &str, mut files : Vec<File>) {
     
 }
 
-fn parse_file(rules : Pairs<Rule>, file : &mut File){
-    let mut baseCtx : usize;
+fn parse_rules(rules : Pairs<Rule>, file : &mut File){
+    let mut baseCtx : usize = 0;
     
     for pair in rules {
         //println!("{:#?}", pair);
+        let line = pair.as_str();
+        println!("{:#?}", line);
         match pair.as_rule() {
             Rule::ctx => {
                 let str = pair.as_span().as_str();
                 baseCtx = str.matches("\t").count();
+            },
+            Rule::attach => {
+                
+                let mut inner = pair.into_inner();
+                let file_type = match inner.next()
+                {
+                        Some(p) => match p.as_span().as_str(){
+                            "necr" => FileType::Necr,
+                            "wiza" => FileType::Wiza,
+                            "sorc" => FileType::Sorc,
+                            "hexy" => FileType::Hexy,
+                            _ => panic!("No proper type given for {:#?}", line) },
+                        None => panic!("No type given for {:#?}", line)
+                };
+                let file_name = match inner.next()
+                {
+                    Some(p) => p.as_span().as_str(),
+                    None => panic!("No filename given for {:#?}", line)
+                };
+                let identifier = match inner.next()
+                {
+                    Some(p) => p.as_span().as_str(),
+                    None => file_name
+                };
+
+                file.attachments.push(Attachment{
+                    identifier : String::from(identifier),
+                    file_name : String::from(file_name),
+                    file_type,
+                    context : baseCtx
+                });
+
             },
             Rule::spell_dec => {
 

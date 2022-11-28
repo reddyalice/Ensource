@@ -6,10 +6,10 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 mod parser;
-use parser::parse;
+use parser::parse_file;
 
 
 fn main() {
     let mut files : Vec<File> = Vec::new();
-    parse("src/tests/general_test.necr", files);
+    parse_file("src/tests/general_test.necr", files);
 }

@@ -106,7 +106,7 @@ doo = _{ NEWLINE ~ (PEEK_ALL ~ ( (rtrn |  dec_or_say )? ~ doo?) | doo)}
 ctx = {PUSH(indent*)}
 
 say = _{lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
-attach = {"attach " ~ file_type ~ identifier}
+attach = {"attach " ~ file_type ~ identifier ~ "as "? ~ identifier?}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~ ft_pars)? ~ do_or_return?}
 
