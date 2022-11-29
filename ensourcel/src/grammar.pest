@@ -9,9 +9,9 @@ bool_literal = @{"true" | "false" | "1b" | "0b" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 hex_literal = @{"0x" ~ ('0'..'f')+} 
 file_type = @{"necr" | "sorc" | "wiza" | "hexy"}
-primitive = @{"bool" | "b" | "char" | "c" | ("u"? ~ ("int" |  "i" | "float" | "fixed" | "f" |  "fx")) | "string" | "str" | "s"}
-
-typee = {(primitive | identifier) ~ integer_literal? ~ (pointer? ~ array?) }
+primitive = @{"bool" | "b" | ("u"? ~ ("int" |  "i" | "float" | "fixed" | "f" |  "fx"))}
+sized_primitive = @{"char" | "c" |"string" | "str" | "s"}
+typee = {(primitive ~ integer_literal? | sized_primitive | identifier)  ~ (pointer? ~ array?) }
 
 add = {"+"} add_assign = {"+="}
 sub = {"-"} sub_assign = {"-="}
@@ -26,6 +26,7 @@ not_equal = {"!=" | "is not"}
 power = {"^"} pow_assign = {"^="}
 b_equal = {">="}
 l_equal = {"<="}
+rem = {"%"}
 
 incr = _{"++"}
 decr = _{"--"}
@@ -54,7 +55,7 @@ unsign = {(unsign_s) ~ say}
 transmute = {"transmute"? ~((say ~ "as" ~ typee) | (typee ~ "of" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
-//TODO matching needs to be done
+//TODO matching needs to be done also randomness
 
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
@@ -70,7 +71,7 @@ privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
 type_def = _{":" ~ typee}
 
-binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal}
+binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal | rem}
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
 assign_calc = {mal? ~ identifier ~ assign_ops ~ say_or_calc}
 binary_calc = {(post | pre | neg | not | sign | unsign | index | say) ~ (binary_ops ~ say_or_calc)+}
