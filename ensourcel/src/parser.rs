@@ -14,9 +14,6 @@ use std::{
 #[grammar = "grammar.pest"]
 pub struct EnsourceLParser;
 
-static public_ritual_TODO: Option<HashMap<(String, String), Vec<String>>> = None;
-static private_ritual_TODO: Option<HashMap<(String, String), Vec<String>>> = None;
-
 fn create_file(filepath: &Path) -> (String, File) {
     let identifier = match filepath.file_stem().unwrap().to_str() {
         Some(i) => i,
@@ -39,6 +36,7 @@ fn create_file(filepath: &Path) -> (String, File) {
     (
         String::from(identifier),
         File {
+            file_name: String::from(identifier),
             file_type,
             spells: HashMap::new(),
             attachments: HashMap::new(),
@@ -49,7 +47,7 @@ fn create_file(filepath: &Path) -> (String, File) {
     )
 }
 
-pub fn parse(dirpath: &str, mut files: &mut HashMap<String, File>) {
+pub fn parse(dirpath: &str, files: &mut HashMap<String, File>) {
     let mut dir = fs::read_dir(dirpath).expect("Couldn't read");
     let mut unparsed: HashMap<String, String> = HashMap::new();
     println!("{:#?}", &dir);
@@ -76,17 +74,30 @@ pub fn parse(dirpath: &str, mut files: &mut HashMap<String, File>) {
         }
     }
 
+    let mut public_ritual_TODO: HashMap<(String, String), Vec<String>> = HashMap::new();
+    let mut private_ritual_TODO: HashMap<(String, String), Vec<String>> = HashMap::new();
+
     for mut file_p in files {
         let source = EnsourceLParser::parse(
             Rule::file,
             unparsed.get(file_p.0).expect("Unparsed doesn't exists"),
         )
         .expect("Couldn't parse the file");
-        pre_parse(source, &mut file_p.1);
+        pre_parse(
+            source,
+            file_p.1,
+            &mut public_ritual_TODO,
+            &mut private_ritual_TODO,
+        );
     }
 }
 
-fn pre_parse(rules: Pairs<Rule>, file: &mut File) {
+fn pre_parse(
+    rules: Pairs<Rule>,
+    file: &mut File,
+    purt: &mut HashMap<(String, String), Vec<String>>,
+    prrt: &mut HashMap<(String, String), Vec<String>>,
+) {
     for pair in rules {
         match pair.as_rule() {
             Rule::attach => {
@@ -95,7 +106,7 @@ fn pre_parse(rules: Pairs<Rule>, file: &mut File) {
                 file.attachments.insert(at.0, at.1);
             }
             Rule::ritual_dec => {
-                let rd = parse_ritual(pair.as_str(), pair);
+                let rd = parse_ritual(pair.as_str(), pair, file, purt, prrt);
 
                 file.rituals.insert(rd.0, rd.1);
             }
@@ -126,16 +137,26 @@ fn parse_rest(rules: Pairs<Rule>, file: &mut File) {
 
 fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) {}
 
-fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeDec {
+fn parse_type(
+    pair: Pair<Rule>,
+    expr: ExprType,
+    file: &mut File,
+    owner_id: Option<(
+        &str,
+        &Privacy,
+        &mut HashMap<(String, String), Vec<String>>,
+        &mut HashMap<(String, String), Vec<String>>,
+    )>,
+) -> Option<TypeDec> {
     let mut inner = pair.into_inner();
 
     match inner.next() {
-        Some(x) => {
-            match x.as_rule() {
-                Rule::primitive => {
-                    let prim = x.as_span().as_str();
-                    match inner.next() {
-                        Some(t) => match t.as_rule() {
+        Some(x) => match x.as_rule() {
+            Rule::primitive => {
+                let prim = x.as_span().as_str();
+                match inner.next() {
+                    Some(t) => {
+                        match t.as_rule() {
                             Rule::integer_literal => {
                                 let s = (t.as_span().as_str())
                                     .parse::<usize>()
@@ -158,20 +179,20 @@ fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeD
                                                             ),
                                                         }
                                                     }
-                                                    return TypeDec {
+                                                    return Some(TypeDec {
                                                         base_type: Type::from_primitive(prim, s),
                                                         pointer: true,
                                                         dimensions: dim.clone(),
-                                                    };
+                                                    });
                                                 }
                                                 _ => panic!("Not expected {}", er.as_str()),
                                             },
                                             None => {
-                                                return TypeDec {
+                                                return Some(TypeDec {
                                                     base_type: Type::from_primitive(prim, s),
                                                     pointer: true,
                                                     dimensions: Vec::new(),
-                                                }
+                                                })
                                             }
                                         },
                                         Rule::array => {
@@ -184,20 +205,20 @@ fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeD
                                                     _ => panic!("Not expected {}", index.as_str()),
                                                 }
                                             }
-                                            return TypeDec {
+                                            return Some(TypeDec {
                                                 base_type: Type::from_primitive(prim, s),
                                                 pointer: false,
                                                 dimensions: dim.clone(),
-                                            };
+                                            });
                                         }
                                         _ => panic!("Not expected {}", t.as_str()),
                                     },
                                     None => {
-                                        return TypeDec {
+                                        return Some(TypeDec {
                                             base_type: Type::from_primitive(prim, s),
                                             pointer: false,
                                             dimensions: Vec::new(),
-                                        }
+                                        })
                                     }
                                 }
                             }
@@ -214,20 +235,20 @@ fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeD
                                                     _ => panic!("Not expected {}", index.as_str()),
                                                 }
                                             }
-                                            return TypeDec {
+                                            return Some(TypeDec {
                                                 base_type: Type::from_cprimitive(prim),
                                                 pointer: true,
                                                 dimensions: dim.clone(),
-                                            };
+                                            });
                                         }
                                         _ => panic!("Not expected {}", er.as_str()),
                                     },
                                     None => {
-                                        return TypeDec {
+                                        return Some(TypeDec {
                                             base_type: Type::from_cprimitive(prim),
                                             pointer: true,
                                             dimensions: Vec::new(),
-                                        }
+                                        })
                                     }
                                 }
                             }
@@ -247,102 +268,35 @@ fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeD
                                         _ => panic!("Not expected {}", index.as_str()),
                                     }
                                 }
-                                return TypeDec {
+                                return Some(TypeDec {
                                     base_type: Type::from_cprimitive(prim),
                                     pointer: true,
                                     dimensions: dim.clone(),
-                                };
+                                });
                             }
                             _ => panic!("Not expected {}", t.as_str()),
-                        },
-                        None => {
-                            return TypeDec {
-                                base_type: Type::from_cprimitive(prim),
-                                pointer: false,
-                                dimensions: Vec::new(),
-                            }
                         }
                     }
+                    None => {
+                        return Some(TypeDec {
+                            base_type: Type::from_cprimitive(prim),
+                            pointer: false,
+                            dimensions: Vec::new(),
+                        })
+                    }
                 }
-                Rule::sized_primitive => {
-                    let prim = x.as_span().as_str();
-                    match prim {
-                        "string" | "str" => {
-                            let s = match expr {
-                                ExprType::String(ss) => ss,
-                                ExprType::Integer(ir) => ir.to_string(),
-                                ExprType::Fixed(fr) => fr.to_string(),
-                                _ => panic!("Cannot parse to string expr"),
-                            };
-                            match inner.next() {
-                                Some(t) => {
-                                    match t.as_rule() {
-                                        Rule::pointer => match inner.next() {
-                                            Some(er) => match er.as_rule() {
-                                                Rule::array => {
-                                                    let mut dim = Vec::new();
-                                                    for index in er.into_inner() {
-                                                        match index.as_rule() {
-                                                            Rule::integer_literal => {
-                                                                dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
-                                                            }
-                                                            _ => panic!(
-                                                                "Not expected {}",
-                                                                index.as_str()
-                                                            ),
-                                                        }
-                                                    }
-                                                    return TypeDec {
-                                                        base_type: Type::str(s.chars().count()),
-                                                        pointer: true,
-                                                        dimensions: dim.clone(),
-                                                    };
-                                                }
-                                                _ => panic!("Not expected {}", er.as_str()),
-                                            },
-                                            None => {
-                                                return TypeDec {
-                                                    base_type: Type::str(s.chars().count()),
-                                                    pointer: true,
-                                                    dimensions: Vec::new(),
-                                                }
-                                            }
-                                        },
-                                        Rule::array => {
-                                            let mut dim = Vec::new();
-                                            for index in t.into_inner() {
-                                                match index.as_rule() {
-                                                    Rule::integer_literal => {
-                                                        dim.push(
-                                                            index
-                                                                .as_span()
-                                                                .as_str()
-                                                                .parse::<usize>()
-                                                                .expect("Failed to parse intereger literal"),
-                                                        );
-                                                    }
-                                                    _ => panic!("Not expected {}", index.as_str()),
-                                                }
-                                            }
-                                            return TypeDec {
-                                                base_type: Type::str(s.chars().count()),
-                                                pointer: true,
-                                                dimensions: dim.clone(),
-                                            };
-                                        }
-                                        _ => panic!("Not expected {}", t.as_str()),
-                                    }
-                                }
-                                None => {
-                                    return TypeDec {
-                                        base_type: Type::str(s.chars().count()),
-                                        pointer: false,
-                                        dimensions: Vec::new(),
-                                    }
-                                }
-                            }
-                        }
-                        "char" | "c" => match inner.next() {
+            }
+            Rule::sized_primitive => {
+                let prim = x.as_span().as_str();
+                match prim {
+                    "string" | "str" => {
+                        let s = match expr {
+                            ExprType::String(ss) => ss,
+                            ExprType::Integer(ir) => ir.to_string(),
+                            ExprType::Fixed(fr) => fr.to_string(),
+                            _ => panic!("Cannot parse to string expr"),
+                        };
+                        match inner.next() {
                             Some(t) => match t.as_rule() {
                                 Rule::pointer => match inner.next() {
                                     Some(er) => match er.as_rule() {
@@ -356,20 +310,20 @@ fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeD
                                                     _ => panic!("Not expected {}", index.as_str()),
                                                 }
                                             }
-                                            return TypeDec {
-                                                base_type: Type::char(),
+                                            return Some(TypeDec {
+                                                base_type: Type::str(s.chars().count()),
                                                 pointer: true,
                                                 dimensions: dim.clone(),
-                                            };
+                                            });
                                         }
                                         _ => panic!("Not expected {}", er.as_str()),
                                     },
                                     None => {
-                                        return TypeDec {
-                                            base_type: Type::char(),
+                                        return Some(TypeDec {
+                                            base_type: Type::str(s.chars().count()),
                                             pointer: true,
                                             dimensions: Vec::new(),
-                                        }
+                                        })
                                     }
                                 },
                                 Rule::array => {
@@ -390,33 +344,216 @@ fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeD
                                             _ => panic!("Not expected {}", index.as_str()),
                                         }
                                     }
-                                    return TypeDec {
-                                        base_type: Type::char(),
+                                    return Some(TypeDec {
+                                        base_type: Type::str(s.chars().count()),
                                         pointer: true,
                                         dimensions: dim.clone(),
-                                    };
+                                    });
                                 }
                                 _ => panic!("Not expected {}", t.as_str()),
                             },
                             None => {
-                                return TypeDec {
-                                    base_type: Type::char(),
+                                return Some(TypeDec {
+                                    base_type: Type::str(s.chars().count()),
                                     pointer: false,
                                     dimensions: Vec::new(),
+                                })
+                            }
+                        }
+                    }
+                    "char" | "c" => match inner.next() {
+                        Some(t) => match t.as_rule() {
+                            Rule::pointer => {
+                                match inner.next() {
+                                    Some(er) => match er.as_rule() {
+                                        Rule::array => {
+                                            let mut dim = Vec::new();
+                                            for index in er.into_inner() {
+                                                match index.as_rule() {
+                                                    Rule::integer_literal => {
+                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
+                                                    }
+                                                    _ => panic!("Not expected {}", index.as_str()),
+                                                }
+                                            }
+                                            return Some(TypeDec {
+                                                base_type: Type::char(),
+                                                pointer: true,
+                                                dimensions: dim.clone(),
+                                            });
+                                        }
+                                        _ => panic!("Not expected {}", er.as_str()),
+                                    },
+                                    None => {
+                                        return Some(TypeDec {
+                                            base_type: Type::char(),
+                                            pointer: true,
+                                            dimensions: Vec::new(),
+                                        })
+                                    }
+                                }
+                            }
+                            Rule::array => {
+                                let mut dim = Vec::new();
+                                for index in t.into_inner() {
+                                    match index.as_rule() {
+                                        Rule::integer_literal => {
+                                            dim.push(
+                                                index
+                                                    .as_span()
+                                                    .as_str()
+                                                    .parse::<usize>()
+                                                    .expect("Failed to parse intereger literal"),
+                                            );
+                                        }
+                                        _ => panic!("Not expected {}", index.as_str()),
+                                    }
+                                }
+                                return Some(TypeDec {
+                                    base_type: Type::char(),
+                                    pointer: true,
+                                    dimensions: dim.clone(),
+                                });
+                            }
+                            _ => panic!("Not expected {}", t.as_str()),
+                        },
+                        None => {
+                            return Some(TypeDec {
+                                base_type: Type::char(),
+                                pointer: false,
+                                dimensions: Vec::new(),
+                            })
+                        }
+                    },
+                    _ => panic!("No prim"),
+                }
+            }
+            Rule::identifier => {
+                let prim = x.as_span().as_str();
+                let mut pointer = false;
+                let mut dim : Vec<usize> = Vec::new();
+                match inner.next() {
+                    Some (r) => match r.as_rule() {
+                        Rule::pointer => {
+                            pointer = true;
+                            match inner.next() {
+                                Some(r1) => match r1.as_rule() {
+                                    Rule::array => {
+                                        for index in r1.into_inner() {
+                                            match index.as_rule() {
+                                                Rule::integer_literal => {
+                                                    dim.push(
+                                                        index
+                                                            .as_span()
+                                                            .as_str()
+                                                            .parse::<usize>()
+                                                            .expect("Failed to parse intereger literal"),
+                                                    );
+                                                }
+                                                _ => panic!("Not expected {}", index.as_str()),
+                                            }
+                                        }
+                                    },
+                                 _ => panic!("Not expected {}", r1.as_str()),
+                                },
+                                None => ()
+                            }
+                        },
+                        Rule::array => {
+                            for index in r.into_inner() {
+                                match index.as_rule() {
+                                    Rule::integer_literal => {
+                                        dim.push(
+                                            index
+                                                .as_span()
+                                                .as_str()
+                                                .parse::<usize>()
+                                                .expect("Failed to parse intereger literal"),
+                                        );
+                                    }
+                                    _ => panic!("Not expected {}", index.as_str()),
                                 }
                             }
                         },
-                        _ => panic!("No prim"),
-                    }
+                        _ => panic!("Not expected {}", r.as_str()),
+                        
+                    },
+                    None => ()                    
                 }
-                /*Rule::identifier =>{
-                    let prim = x.as_span().as_str();
-                },*/
-                _ => panic!("No type"),
+
+                match owner_id {
+                    Some(owner) => {
+                        if (owner.0 == prim) && !pointer {
+                            println!("Try using {} as a pointer", prim);
+                            panic!("Ritual size is infinite");
+                        } else {
+                            parse_todo_type(String::from(prim), pointer, &dim, file, String::from(owner.0), owner.2, owner.3, owner.1);
+                            return None;
+                        }
+                    }
+                    None => {
+                        match file.rituals.get(&String::from(prim)) {
+                            Some(r) => {
+                                return Some(TypeDec { base_type: Type::from_ritual(String::from(prim), r), pointer, dimensions: dim.clone() })
+                            },
+                            None => {
+                                //for attach in file.attachments {
+                                    return None;
+                                //}
+                            }
+                        }
+                    },
+                }
+                
             }
-        }
+            _ => panic!("No type"),
+        },
         None => panic!("No type"),
     }
+}
+
+fn parse_todo_type(
+    prim: String,
+    pointer: bool,
+    dimensions: &Vec<usize>,
+    file: &mut File,
+    owner_id: String,
+    prrt: &mut HashMap<(String, String), Vec<String>>,
+    purt: &mut HashMap<(String, String), Vec<String>>,
+    privacy: &Privacy,
+) {
+        let key = (owner_id, file.file_name.clone());
+        let mut p = prim + if pointer { "/p" } else { "" };
+        if dimensions.len() > 0 {
+            p.push_str("/d");
+            p.push_str(&*format!("{:#?}", dimensions));
+        }
+        match privacy {
+            Privacy::Forall => {
+                if purt.contains_key(&key) {
+                    match purt.get_mut(&key) {
+                        Some(v1) => v1.push(p),
+                        None => {
+                            purt.insert(key, vec![p]);
+                        }
+                    }
+                } else {
+                    purt.insert(key, vec![p]);
+                }
+            }
+            Privacy::Mine => {
+                if prrt.contains_key(&key) {
+                    match prrt.get_mut(&key) {
+                        Some(v1) => v1.push(p),
+                        None => {
+                            prrt.insert(key, vec![p]);
+                        }
+                    }
+                } else {
+                    prrt.insert(key, vec![p]);
+                }
+            }
+        }
 }
 
 /* TODO
@@ -424,7 +561,13 @@ fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
 
 }*/
 
-fn parse_ritual(line: &str, pair: Pair<Rule>) -> (String, Ritual) {
+fn parse_ritual(
+    line: &str,
+    pair: Pair<Rule>,
+    file: &mut File,
+    purt: &mut HashMap<(String, String), Vec<String>>,
+    prrt: &mut HashMap<(String, String), Vec<String>>,
+) -> (String, Ritual) {
     let mut inner = pair.into_inner();
     let mut privacy: Privacy = Privacy::Forall;
     let mut identifier = "";
@@ -446,21 +589,33 @@ fn parse_ritual(line: &str, pair: Pair<Rule>) -> (String, Ritual) {
                 }
                 Rule::ritual_pars => {
                     let mut i2 = p1.into_inner();
-                    loop {
+                    'tloop: loop {
                         let mut id = "";
                         let ty: TypeDec;
                         match i2.next() {
                             Some(p2) => match p2.as_rule() {
                                 Rule::element_ident => {
                                     id = p2.into_inner().as_str();
-                                    ty = parse_type(
+                                    match parse_type(
                                         i2.next().expect("No type found"),
                                         ExprType::None,
-                                        Option::Some((identifier)),
-                                    );
+                                        file,
+                                        Option::Some((identifier, &privacy, purt, prrt)),
+                                    ) {
+                                        Some(t) => ty = t,
+                                        None => continue 'tloop,
+                                    }
                                 }
                                 Rule::typee => {
-                                    ty = parse_type(p2, ExprType::None, Option::Some((identifier)))
+                                    match parse_type(
+                                        p2,
+                                        ExprType::None,
+                                        file,
+                                        Option::Some((identifier, &privacy, purt, prrt)),
+                                    ) {
+                                        Some(t) => ty = t,
+                                        None => continue 'tloop,
+                                    }
                                 }
                                 _ => break,
                             },

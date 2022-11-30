@@ -9,8 +9,6 @@ extern crate pest;
 extern crate pest_derive;
 mod parser;
 use parser::parse;
-use parser::Rule;
-use pest::iterators::Pairs;
 
 fn main() {
     let mut files : HashMap<String, File> = HashMap::new();

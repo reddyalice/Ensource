@@ -77,13 +77,13 @@ impl Type {
     }
 
 
-    pub fn from_ritual(identifier : String, ritual: Ritual) -> Type {
+    pub fn from_ritual(identifier : String, ritual: &Ritual) -> Type {
         let mut size: usize = 0;
-        for t in ritual.content {
+        for t in &ritual.content {
             let mut s;
             if !t.par_type.pointer {
                 s = t.par_type.base_type.size;
-                for d in t.par_type.dimensions {
+                for d in &t.par_type.dimensions {
                     s *= d;
                 }
             } else {
@@ -174,13 +174,14 @@ impl Type {
         Type {
             identifier: String::from("void"),
             signed: false,
-            size: memSize,
+            size: 0,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct File {
+    pub file_name : String,
     pub file_type: FileType,
     pub spells: HashMap<String, Spell>,
     pub attachments:  HashMap<String, Attachment>,
