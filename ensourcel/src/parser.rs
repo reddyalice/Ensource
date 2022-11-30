@@ -4,13 +4,20 @@ use pest::{
     iterators::{Pair, Pairs},
     Parser,
 };
-use std::{fs, path::Path};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct EnsourceLParser;
 
-fn create_file(filepath: &Path) -> File {
+static public_ritual_TODO: Option<HashMap<(String, String), Vec<String>>> = None;
+static private_ritual_TODO: Option<HashMap<(String, String), Vec<String>>> = None;
+
+fn create_file(filepath: &Path) -> (String, File) {
     let identifier = match filepath.file_stem().unwrap().to_str() {
         Some(i) => i,
         None => "",
@@ -29,60 +36,97 @@ fn create_file(filepath: &Path) -> File {
         "hexy" => FileType::Hexy,
         _ => FileType::Necr,
     };
-
-    File {
-        identifier: String::from(identifier),
-        file_type,
-        spells: Vec::new(),
-        attachments: Vec::new(),
-        rituals: Vec::new(),
-        content: Vec::new(),
-    }
-}
-
-pub fn parse_file(filepath: &str, mut files: Vec<File>) {
-    let path = Path::new(filepath);
-
-    let unparsed = fs::read_to_string(path).expect("Couldn't read");
-    let source = EnsourceLParser::parse(Rule::file, &unparsed);
-
-    files.push(create_file(path));
-
-    match files.last_mut() {
-        Some(file) => match source {
-            Ok(rules) => parse_rules(rules, file),
-            Err(e) => print!("Failed to parse because of {:#?}", e),
+    (
+        String::from(identifier),
+        File {
+            file_type,
+            spells: HashMap::new(),
+            attachments: HashMap::new(),
+            rituals: HashMap::new(),
+            sigils: HashMap::new(),
+            content: Vec::new(),
         },
-        None => panic!("File doesn't exists"),
+    )
+}
+
+pub fn parse(dirpath: &str, mut files: &mut HashMap<String, File>) {
+    let mut dir = fs::read_dir(dirpath).expect("Couldn't read");
+    let mut unparsed: HashMap<String, String> = HashMap::new();
+    println!("{:#?}", &dir);
+    for path in dir {
+        let pth = path.expect("Couldn't get").path();
+        match pth
+            .as_path()
+            .extension()
+            .expect("Couldn't get extension")
+            .to_str()
+        {
+            Some(i) => match i {
+                "necr" | "wiza" | "sorc" | "hexy" => {
+                    let file = create_file(pth.as_path());
+                    files.insert((&file.0).clone(), file.1);
+                    unparsed.insert(
+                        file.0,
+                        fs::read_to_string(pth.as_path()).expect("Couldn't read"),
+                    );
+                }
+                _ => (),
+            },
+            None => (),
+        }
+    }
+
+    for mut file_p in files {
+        let source = EnsourceLParser::parse(
+            Rule::file,
+            unparsed.get(file_p.0).expect("Unparsed doesn't exists"),
+        )
+        .expect("Couldn't parse the file");
+        pre_parse(source, &mut file_p.1);
     }
 }
 
-fn parse_rules(rules: Pairs<Rule>, file: &mut File) {
+fn pre_parse(rules: Pairs<Rule>, file: &mut File) {
+    for pair in rules {
+        match pair.as_rule() {
+            Rule::attach => {
+                let at = parse_attachment(pair.as_str(), pair);
+
+                file.attachments.insert(at.0, at.1);
+            }
+            Rule::ritual_dec => {
+                let rd = parse_ritual(pair.as_str(), pair);
+
+                file.rituals.insert(rd.0, rd.1);
+            }
+            _ => (),
+        }
+    }
+}
+
+fn parse_rest(rules: Pairs<Rule>, file: &mut File) {
     let mut base_ctx: usize = 0;
 
     for pair in rules {
-        //println!("{:#?}", pair);
         let line = pair.as_str();
-        println!("{:#?}", line);
         match pair.as_rule() {
             Rule::ctx => {
                 let str = pair.as_span().as_str();
                 base_ctx = str.matches("\t").count();
             }
-            Rule::attach => file
-                .attachments
-                .push(parse_attachment(base_ctx, line, pair)),
             Rule::spell_dec => {
                 //file.spells.push(parse_spell(base_ctx, line, pair))
             }
-            Rule::ritual_dec => file.rituals.push(parse_ritual(base_ctx, line, pair)),
-            _ => (),
+            Rule::EOI => (),
+            _ => parse_expr(base_ctx, line, pair),
         }
     }
     println!("{:#?}", file);
 }
 
-fn parse_type(pair: Pair<Rule>, expr: ExprType, ownerID: Option<&str>) -> TypeDec {
+fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) {}
+
+fn parse_type(pair: Pair<Rule>, expr: ExprType, owner_id: Option<&str>) -> TypeDec {
     let mut inner = pair.into_inner();
 
     match inner.next() {
@@ -380,12 +424,12 @@ fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
 
 }*/
 
-fn parse_ritual(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Ritual {
+fn parse_ritual(line: &str, pair: Pair<Rule>) -> (String, Ritual) {
     let mut inner = pair.into_inner();
     let mut privacy: Privacy = Privacy::Forall;
     let mut identifier = "";
     let mut pars: Vec<Par> = Vec::new();
-
+    println!("{:#?}", line);
     loop {
         let p = inner.next();
         match p {
@@ -404,13 +448,11 @@ fn parse_ritual(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Ritual {
                     let mut i2 = p1.into_inner();
                     loop {
                         let mut id = "";
-                        let mut ty: TypeDec;
+                        let ty: TypeDec;
                         match i2.next() {
                             Some(p2) => match p2.as_rule() {
                                 Rule::element_ident => {
                                     id = p2.into_inner().as_str();
-                                    println!("id val : {:#?}", identifier);
-
                                     ty = parse_type(
                                         i2.next().expect("No type found"),
                                         ExprType::None,
@@ -436,15 +478,19 @@ fn parse_ritual(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Ritual {
             None => break,
         }
     }
-    Ritual {
-        privacy,
-        identifier: String::from(identifier),
-        content: pars.clone(),
-    }
+
+    (
+        String::from(identifier),
+        Ritual {
+            privacy,
+            content: pars.clone(),
+        },
+    )
 }
 
-fn parse_attachment(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Attachment {
+fn parse_attachment(line: &str, pair: Pair<Rule>) -> (String, Attachment) {
     let mut inner = pair.into_inner();
+    println!("{:#?}", line);
     let file_type = match inner.next() {
         Some(p) => match p.as_span().as_str() {
             "necr" => FileType::Necr,
@@ -464,10 +510,11 @@ fn parse_attachment(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Attachment
         None => file_name,
     };
 
-    Attachment {
-        identifier: String::from(identifier),
-        file_name: String::from(file_name),
-        file_type,
-        context: base_ctx,
-    }
+    (
+        String::from(identifier),
+        Attachment {
+            file_name: String::from(file_name),
+            file_type,
+        },
+    )
 }

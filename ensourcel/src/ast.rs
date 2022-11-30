@@ -1,4 +1,5 @@
 use std::boxed::Box;
+use std::collections::HashMap;
 use std::mem;
 
 
@@ -76,7 +77,7 @@ impl Type {
     }
 
 
-    pub fn from_ritual(ritual: Ritual) -> Type {
+    pub fn from_ritual(identifier : String, ritual: Ritual) -> Type {
         let mut size: usize = 0;
         for t in ritual.content {
             let mut s;
@@ -91,7 +92,7 @@ impl Type {
             size += s;
         }
         Type {
-            identifier: ritual.identifier,
+            identifier,
             signed: false,
             size,
         }
@@ -173,32 +174,29 @@ impl Type {
         Type {
             identifier: String::from("void"),
             signed: false,
-            size: 0,
+            size: memSize,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct File {
-    pub identifier: String,
     pub file_type: FileType,
-    pub spells: Vec<Spell>,
-    pub attachments: Vec<Attachment>,
-    pub rituals: Vec<Ritual>,
+    pub spells: HashMap<String, Spell>,
+    pub attachments:  HashMap<String, Attachment>,
+    pub rituals:  HashMap<String, Ritual>,
+    pub sigils :  HashMap<String, Sigil>,
     pub content: Vec<Expr>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Attachment {
-    pub identifier: String,
     pub file_name: String,
-    pub file_type: FileType,
-    pub context: usize,
+    pub file_type: FileType
 }
 
 #[derive(Clone, Debug)]
 pub struct Spell {
-    pub identifier: String,
     pub rtn_type: TypeDec,
     pub privacy: Privacy,
     pub target: Target,
@@ -216,7 +214,6 @@ pub struct Par {
 #[derive(Clone, Debug)]
 pub struct Ritual {
     pub privacy: Privacy,
-    pub identifier: String,
     pub content: Vec<Par>,
 }
 
@@ -322,6 +319,7 @@ pub struct Skip{
 pub struct Expr{
     context : usize,
     expr_type : TypeDec,
+    sigil : Option<(String, Sigil)>,
     exp : ExprType
 }
 
@@ -334,7 +332,6 @@ pub enum ExprType {
     ChannelListFor(Box<ChannelListFor>),
     Lambda(Box<Lambda>),
     Cast(Box<Cast>),
-    Sigil(Box<Sigil>),
     Print(Box<Print>),
     BinaryOp(Box<BinaryOp>),
     UnaryOp(Box<UnaryOp>),
