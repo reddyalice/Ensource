@@ -35,7 +35,7 @@ i: ufloat32[0,1,3] = -4 + 5 +-5-5
 entropic sigil sg
 ritual test{i32,f64}
 ritual test2:
-	v : i32[2,4]
+	v : test*[2,4]
 	a : i64
  
 a = test{ a, 

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::mem;
 
 
-pub const byeSize : usize = 8;
-pub const memSize : usize = mem::size_of::<usize>();
+pub const BYE_SIZE : usize = 8;
+pub const MEM_SIZE : usize = mem::size_of::<usize>();
 
 #[derive(Clone, Debug)]
 pub enum FileType {
@@ -87,7 +87,7 @@ impl Type {
                     s *= d;
                 }
             } else {
-                s = memSize;
+                s = MEM_SIZE;
             }
             size += s;
         }

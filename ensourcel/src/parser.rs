@@ -7,7 +7,7 @@ use pest::{
 use std::{
     collections::HashMap,
     fs,
-    path::{Path, PathBuf},
+    path::Path
 };
 
 #[derive(Parser)]
@@ -48,8 +48,9 @@ fn create_file(filepath: &Path) -> (String, File) {
 }
 
 pub fn parse(dirpath: &str, files: &mut HashMap<String, File>) {
-    let mut dir = fs::read_dir(dirpath).expect("Couldn't read");
+    let dir = fs::read_dir(dirpath).expect("Couldn't read");
     let mut unparsed: HashMap<String, String> = HashMap::new();
+    
     println!("{:#?}", &dir);
     for path in dir {
         let pth = path.expect("Couldn't get").path();
@@ -74,29 +75,38 @@ pub fn parse(dirpath: &str, files: &mut HashMap<String, File>) {
         }
     }
 
-    let mut public_ritual_TODO: HashMap<(String, String), Vec<String>> = HashMap::new();
-    let mut private_ritual_TODO: HashMap<(String, String), Vec<String>> = HashMap::new();
+    {
+        let mut public_ritual_todo: HashMap<(String, String), Vec<String>> = HashMap::new();
+        let mut private_ritual_todo: HashMap<(String, String), Vec<String>> = HashMap::new();
+        let mut t = files.clone();
+        for file_p in files {
+            let mut source = EnsourceLParser::parse(
+                Rule::file,
+                unparsed.get(file_p.0).expect("Unparsed doesn't exists"),
+            )
+            .expect("Couldn't parse the file");
+            pre_parse(
+                &mut source,
+                file_p.1,
+                &mut public_ritual_todo,
+                &mut private_ritual_todo,
+                &mut t,
+            );
+        }
+        println!("{:#?}", public_ritual_todo);
+        println!("{:#?}", private_ritual_todo);
 
-    for mut file_p in files {
-        let source = EnsourceLParser::parse(
-            Rule::file,
-            unparsed.get(file_p.0).expect("Unparsed doesn't exists"),
-        )
-        .expect("Couldn't parse the file");
-        pre_parse(
-            source,
-            file_p.1,
-            &mut public_ritual_TODO,
-            &mut private_ritual_TODO,
-        );
+
+
     }
 }
 
 fn pre_parse(
-    rules: Pairs<Rule>,
+    rules: &mut Pairs<Rule>,
     file: &mut File,
     purt: &mut HashMap<(String, String), Vec<String>>,
     prrt: &mut HashMap<(String, String), Vec<String>>,
+    files: &mut HashMap<String, File>,
 ) {
     for pair in rules {
         match pair.as_rule() {
@@ -106,7 +116,7 @@ fn pre_parse(
                 file.attachments.insert(at.0, at.1);
             }
             Rule::ritual_dec => {
-                let rd = parse_ritual(pair.as_str(), pair, file, purt, prrt);
+                let rd = parse_ritual(pair.as_str(), pair, file, purt, prrt, files);
 
                 file.rituals.insert(rd.0, rd.1);
             }
@@ -147,6 +157,7 @@ fn parse_type(
         &mut HashMap<(String, String), Vec<String>>,
         &mut HashMap<(String, String), Vec<String>>,
     )>,
+    files: &mut HashMap<String, File>,
 ) -> Option<TypeDec> {
     let mut inner = pair.into_inner();
 
@@ -161,7 +172,7 @@ fn parse_type(
                                 let s = (t.as_span().as_str())
                                     .parse::<usize>()
                                     .expect("Failed to parse intereger literal")
-                                    / byeSize;
+                                    / BYE_SIZE;
                                 match inner.next() {
                                     Some(r) => match r.as_rule() {
                                         Rule::pointer => match inner.next() {
@@ -431,54 +442,55 @@ fn parse_type(
             Rule::identifier => {
                 let prim = x.as_span().as_str();
                 let mut pointer = false;
-                let mut dim : Vec<usize> = Vec::new();
+                let mut dim: Vec<usize> = Vec::new();
                 match inner.next() {
-                    Some (r) => match r.as_rule() {
-                        Rule::pointer => {
-                            pointer = true;
-                            match inner.next() {
-                                Some(r1) => match r1.as_rule() {
-                                    Rule::array => {
-                                        for index in r1.into_inner() {
-                                            match index.as_rule() {
-                                                Rule::integer_literal => {
-                                                    dim.push(
+                    Some(r) => {
+                        match r.as_rule() {
+                            Rule::pointer => {
+                                pointer = true;
+                                match inner.next() {
+                                    Some(r1) => match r1.as_rule() {
+                                        Rule::array => {
+                                            for index in r1.into_inner() {
+                                                match index.as_rule() {
+                                                    Rule::integer_literal => {
+                                                        dim.push(
                                                         index
                                                             .as_span()
                                                             .as_str()
                                                             .parse::<usize>()
                                                             .expect("Failed to parse intereger literal"),
                                                     );
+                                                    }
+                                                    _ => panic!("Not expected {}", index.as_str()),
                                                 }
-                                                _ => panic!("Not expected {}", index.as_str()),
                                             }
                                         }
+                                        _ => panic!("Not expected {}", r1.as_str()),
                                     },
-                                 _ => panic!("Not expected {}", r1.as_str()),
-                                },
-                                None => ()
-                            }
-                        },
-                        Rule::array => {
-                            for index in r.into_inner() {
-                                match index.as_rule() {
-                                    Rule::integer_literal => {
-                                        dim.push(
-                                            index
-                                                .as_span()
-                                                .as_str()
-                                                .parse::<usize>()
-                                                .expect("Failed to parse intereger literal"),
-                                        );
-                                    }
-                                    _ => panic!("Not expected {}", index.as_str()),
+                                    None => (),
                                 }
                             }
-                        },
-                        _ => panic!("Not expected {}", r.as_str()),
-                        
-                    },
-                    None => ()                    
+                            Rule::array => {
+                                for index in r.into_inner() {
+                                    match index.as_rule() {
+                                        Rule::integer_literal => {
+                                            dim.push(
+                                                index
+                                                    .as_span()
+                                                    .as_str()
+                                                    .parse::<usize>()
+                                                    .expect("Failed to parse intereger literal"),
+                                            );
+                                        }
+                                        _ => panic!("Not expected {}", index.as_str()),
+                                    }
+                                }
+                            }
+                            _ => panic!("Not expected {}", r.as_str()),
+                        }
+                    }
+                    None => (),
                 }
 
                 match owner_id {
@@ -487,24 +499,47 @@ fn parse_type(
                             println!("Try using {} as a pointer", prim);
                             panic!("Ritual size is infinite");
                         } else {
-                            parse_todo_type(String::from(prim), pointer, &dim, file, String::from(owner.0), owner.2, owner.3, owner.1);
+                            parse_todo_type(
+                                String::from(prim),
+                                pointer,
+                                &dim,
+                                file,
+                                String::from(owner.0),
+                                owner.2,
+                                owner.3,
+                                owner.1,
+                            );
                             return None;
                         }
                     }
-                    None => {
-                        match file.rituals.get(&String::from(prim)) {
-                            Some(r) => {
-                                return Some(TypeDec { base_type: Type::from_ritual(String::from(prim), r), pointer, dimensions: dim.clone() })
-                            },
-                            None => {
-                                //for attach in file.attachments {
-                                    return None;
-                                //}
+                    None => match file.rituals.get(&String::from(prim)) {
+                        Some(r) => {
+                            return Some(TypeDec {
+                                base_type: Type::from_ritual(String::from(prim), r),
+                                pointer,
+                                dimensions: dim.clone(),
+                            })
+                        }
+                        None => {
+                            for attach in &file.attachments {
+                                match files.get(&attach.1.file_name) {
+                                    Some(f) => match f.rituals.get(&String::from(prim)) {
+                                        Some(r) => {
+                                            return Some(TypeDec {
+                                                base_type: Type::from_ritual(String::from(prim), r),
+                                                pointer,
+                                                dimensions: dim.clone(),
+                                            })
+                                        }
+                                        None => continue,
+                                    },
+                                    None => panic!("No file attached! {}", x.as_str()),
+                                }
                             }
+                            panic!("Couldn't find the ritual for the type! {}", x.as_str());
                         }
                     },
                 }
-                
             }
             _ => panic!("No type"),
         },
@@ -522,38 +557,38 @@ fn parse_todo_type(
     purt: &mut HashMap<(String, String), Vec<String>>,
     privacy: &Privacy,
 ) {
-        let key = (owner_id, file.file_name.clone());
-        let mut p = prim + if pointer { "/p" } else { "" };
-        if dimensions.len() > 0 {
-            p.push_str("/d");
-            p.push_str(&*format!("{:#?}", dimensions));
-        }
-        match privacy {
-            Privacy::Forall => {
-                if purt.contains_key(&key) {
-                    match purt.get_mut(&key) {
-                        Some(v1) => v1.push(p),
-                        None => {
-                            purt.insert(key, vec![p]);
-                        }
+    let key = (owner_id, file.file_name.clone());
+    let mut p = prim + if pointer { "/p" } else { "" };
+    if dimensions.len() > 0 {
+        p.push_str("/d");
+        p.push_str(&*format!("{:?}", dimensions));
+    }
+    match privacy {
+        Privacy::Forall => {
+            if purt.contains_key(&key) {
+                match purt.get_mut(&key) {
+                    Some(v1) => v1.push(p),
+                    None => {
+                        purt.insert(key, vec![p]);
                     }
-                } else {
-                    purt.insert(key, vec![p]);
                 }
-            }
-            Privacy::Mine => {
-                if prrt.contains_key(&key) {
-                    match prrt.get_mut(&key) {
-                        Some(v1) => v1.push(p),
-                        None => {
-                            prrt.insert(key, vec![p]);
-                        }
-                    }
-                } else {
-                    prrt.insert(key, vec![p]);
-                }
+            } else {
+                purt.insert(key, vec![p]);
             }
         }
+        Privacy::Mine => {
+            if prrt.contains_key(&key) {
+                match prrt.get_mut(&key) {
+                    Some(v1) => v1.push(p),
+                    None => {
+                        prrt.insert(key, vec![p]);
+                    }
+                }
+            } else {
+                prrt.insert(key, vec![p]);
+            }
+        }
+    }
 }
 
 /* TODO
@@ -567,6 +602,7 @@ fn parse_ritual(
     file: &mut File,
     purt: &mut HashMap<(String, String), Vec<String>>,
     prrt: &mut HashMap<(String, String), Vec<String>>,
+    files: &mut HashMap<String, File>,
 ) -> (String, Ritual) {
     let mut inner = pair.into_inner();
     let mut privacy: Privacy = Privacy::Forall;
@@ -601,6 +637,7 @@ fn parse_ritual(
                                         ExprType::None,
                                         file,
                                         Option::Some((identifier, &privacy, purt, prrt)),
+                                        files,
                                     ) {
                                         Some(t) => ty = t,
                                         None => continue 'tloop,
@@ -612,6 +649,7 @@ fn parse_ritual(
                                         ExprType::None,
                                         file,
                                         Option::Some((identifier, &privacy, purt, prrt)),
+                                        files,
                                     ) {
                                         Some(t) => ty = t,
                                         None => continue 'tloop,
