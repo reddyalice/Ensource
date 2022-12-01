@@ -7,14 +7,35 @@
 		},
 		{
 			"include": "#strings"
+		},
+		{
+			"include": "#comments"
 		}
+		
 	],
 	"repository": {
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.ensourcel",
-				"match": "\\b(if|while|for|return)\\b"
-			}]
+				"match": "\\b(if|else|channel|skip|wait|stop|transmute|cast)\\b|\\:|\\-\\>|\\<\\-"
+			},
+			{
+				"name" : "storage.type.ensourcel",
+				"match": "\\b(spell|attach|ritual|sigil|embed)\\b"
+			},
+			{
+				"name" : "storage.modifier.ensourcel",
+				"match": "\\b(forall|mine|golem|whisper|crystal|entropic)\\b"
+			},
+			{
+				"name" : "keyword.operator.ensourcel",
+				"match": "\\+|\\-|\\^|\\=|\\*"
+			},
+			{
+				"name": "variable.name.ensourcel",
+				"match": "[A-Za-z_][A-Za-z0-9_]*"
+			}
+		]
 		},
 		"strings": {
 			"name": "string.quoted.double.ensourcel",
@@ -26,7 +47,22 @@
 					"match": "\\\\."
 				}
 			]
-		}
+		},
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.block.ensourcel",
+                    "begin": "\\@",
+                    "end": "\\@|\\\n",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.ensourcel",
+							"match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        }
 	},
 	"scopeName": "source.necr"
 }

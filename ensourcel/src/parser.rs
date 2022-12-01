@@ -145,7 +145,9 @@ fn parse_rest(rules: Pairs<Rule>, file: &mut File) {
     println!("{:#?}", file);
 }
 
-fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) {}
+fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) {
+
+}
 
 fn parse_type(
     pair: Pair<Rule>,

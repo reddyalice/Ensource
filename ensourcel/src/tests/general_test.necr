@@ -19,12 +19,11 @@ i += 1
 	i++
 	a = sign i
 	crystal a ^= 1
-        @ Test thing
 	a = ( a ? 2 : 3)
 		spell : i32 sadas -> cast y -> a
 	attach necr a
-
-	golem crystal a : i8 = 3
+	@ test comments
+	golem crystal a : str = "sad"
 	cast asd -> asd
 	if t:
 		if t:

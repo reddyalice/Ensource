@@ -58,6 +58,9 @@ index = { say ~ "[" ~ say_or_calc ~ "]"}
 //TODO matching needs to be done also randomness
 //TODO anagrams, 
 
+
+randomness = {"d"}
+
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
