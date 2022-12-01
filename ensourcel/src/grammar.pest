@@ -55,11 +55,12 @@ unsign = {(unsign_s) ~ say}
 transmute = {"transmute"? ~((say ~ "as" ~ typee) | (typee ~ "of" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
-//TODO matching needs to be done also randomness
+//TODO matching needs to be done
 //TODO anagrams, 
 
 
-randomness = {"d"}
+randomness = {("dice " ~ (float_literal | integer_literal) ~ (float_literal | integer_literal)?)
+				| (("d4" | "d6" | "d8" | "d12" | "d20" | "d100") ~ "f"?)}
 
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
 else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
@@ -110,7 +111,7 @@ n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ in_ctx ~ ctx ~ (rtrn |  dec_or_say)? ~ DR
 doo = _{ NEWLINE ~ (PEEK_ALL ~ ctx ~ ( (rtrn |  dec_or_say )? ~ doo?) ~ DROP | doo)}
 ctx = {PUSH(indent*)}
 in_ctx = {PUSH(indent)}
-say = _{lambda | cast | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
+say = _{lambda | cast | randomness | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
 attach = {"attach " ~ file_type ~ identifier ~ "as "? ~ identifier?}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~ ft_pars)? ~ do_or_return?}

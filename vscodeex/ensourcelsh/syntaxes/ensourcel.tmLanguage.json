@@ -17,11 +17,11 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.ensourcel",
-				"match": "\\b(if|else|channel|skip|wait|stop|transmute|cast)\\b|\\:|\\-\\>|\\<\\-"
+				"match": "\\b(if|else|channel|skip|wait|stop|transmute|cast|of|dice|d4|d6|d8|d12|d20|d100|d4f|d6f|d8f|d12f|d20f|d100f)\\b|\\:|\\-\\>|\\<\\-"
 			},
 			{
 				"name" : "storage.type.ensourcel",
-				"match": "\\b(spell|attach|ritual|sigil|embed)\\b"
+				"match": "\\b(spell|attach|ritual|sigil|embed|int|str|string|float|fixed|char)\\b"
 			},
 			{
 				"name" : "storage.modifier.ensourcel",

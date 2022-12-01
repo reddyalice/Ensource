@@ -1,0 +1,3 @@
+ritual Cat:
+	name : Cat*
+	age : i32

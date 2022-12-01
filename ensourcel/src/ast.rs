@@ -317,11 +317,18 @@ pub struct Skip{
 }
 
 #[derive(Clone, Debug)]
+pub struct Dice{
+    pub min : Expr,
+    pub max : Expr
+}
+
+
+#[derive(Clone, Debug)]
 pub struct Expr{
-    context : usize,
-    expr_type : TypeDec,
-    sigil : Option<(String, Sigil)>,
-    exp : ExprType
+    pub context : usize,
+    pub expr_type : TypeDec,
+    pub sigil : Option<(String, Sigil)>,
+    pub exp : ExprType
 }
 
 
@@ -341,6 +348,7 @@ pub enum ExprType {
     Wait(Box<Wait>),
     Stop(Box<Stop>),
     Skip(Box<Stop>),
+    Dice(Box<Dice>),
     Identifier(String),
     String(String),
     Bool(bool),
