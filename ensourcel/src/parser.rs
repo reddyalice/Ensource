@@ -4,11 +4,7 @@ use pest::{
     iterators::{Pair, Pairs},
     Parser,
 };
-use std::{
-    collections::HashMap,
-    fs,
-    path::Path
-};
+use std::{collections::HashMap, fs, path::Path};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -50,10 +46,11 @@ fn create_file(filepath: &Path) -> (String, File) {
 pub fn parse(dirpath: &str, files: &mut HashMap<String, File>) {
     let dir = fs::read_dir(dirpath).expect("Couldn't read");
     let mut unparsed: HashMap<String, String> = HashMap::new();
+
     
-    println!("{:#?}", &dir);
     for path in dir {
         let pth = path.expect("Couldn't get").path();
+        println!("Read : {:#?}", &pth);
         match pth
             .as_path()
             .extension()
@@ -62,6 +59,7 @@ pub fn parse(dirpath: &str, files: &mut HashMap<String, File>) {
         {
             Some(i) => match i {
                 "necr" | "wiza" | "sorc" | "hexy" => {
+                    
                     let file = create_file(pth.as_path());
                     files.insert((&file.0).clone(), file.1);
                     unparsed.insert(
@@ -93,8 +91,10 @@ pub fn parse(dirpath: &str, files: &mut HashMap<String, File>) {
                 &mut t,
             );
         }
-        println!("{:#?}", public_ritual_todo);
-        println!("{:#?}", private_ritual_todo);
+        println!("Public Ritual TODO {:#?}", public_ritual_todo);
+        println!("Public Ritual TODO {:#?}", private_ritual_todo);
+
+        
 
 
 
@@ -109,6 +109,9 @@ fn pre_parse(
     files: &mut HashMap<String, File>,
 ) {
     for pair in rules {
+
+
+        println!("{}", pair.as_str());
         match pair.as_rule() {
             Rule::attach => {
                 let at = parse_attachment(pair.as_str(), pair);
@@ -125,31 +128,38 @@ fn pre_parse(
     }
 }
 
-fn parse_rest(rules: Pairs<Rule>, file: &mut File) {
+
+
+
+
+
+
+
+
+
+
+fn parse_rest(rules: Pairs<Rule>, file: &mut File, files: &mut HashMap<String, File>) {
     let mut base_ctx: usize = 0;
 
     for pair in rules {
         let line = pair.as_str();
+        
         match pair.as_rule() {
             Rule::ctx => {
                 let str = pair.as_span().as_str();
                 base_ctx = str.matches("\t").count();
             }
-            Rule::spell_dec => {
-                //file.spells.push(parse_spell(base_ctx, line, pair))
-            }
+            Rule::spell_dec => (), //file.spells.push(parse_spell(base_ctx, line, pair)),
+
             Rule::EOI => (),
-            _ => parse_expr(base_ctx, line, pair),
+            _ => (), // parse_expr(base_ctx, line, pair),
         }
     }
     println!("{:#?}", file);
 }
 
-fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) {
-
-}
-
 fn parse_type(
+    line : &str,
     pair: Pair<Rule>,
     expr: ExprType,
     file: &mut File,
@@ -173,7 +183,7 @@ fn parse_type(
                             Rule::integer_literal => {
                                 let s = (t.as_span().as_str())
                                     .parse::<usize>()
-                                    .expect("Failed to parse intereger literal")
+                                    .expect("Failed to parse integer literal")
                                     / BYE_SIZE;
                                 match inner.next() {
                                     Some(r) => match r.as_rule() {
@@ -187,7 +197,8 @@ fn parse_type(
                                                                 dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
                                                             }
                                                             _ => panic!(
-                                                                "Not expected {}",
+                                                                "Not expected at {} for {}",
+                                                                line,
                                                                 index.as_str()
                                                             ),
                                                         }
@@ -198,7 +209,7 @@ fn parse_type(
                                                         dimensions: dim.clone(),
                                                     });
                                                 }
-                                                _ => panic!("Not expected {}", er.as_str()),
+                                                _ => panic!("Not expected at {} for {}",line, er.as_str()),
                                             },
                                             None => {
                                                 return Some(TypeDec {
@@ -213,9 +224,9 @@ fn parse_type(
                                             for index in r.into_inner() {
                                                 match index.as_rule() {
                                                     Rule::integer_literal => {
-                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
+                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse integer literal"));
                                                     }
-                                                    _ => panic!("Not expected {}", index.as_str()),
+                                                    _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                                 }
                                             }
                                             return Some(TypeDec {
@@ -224,7 +235,7 @@ fn parse_type(
                                                 dimensions: dim.clone(),
                                             });
                                         }
-                                        _ => panic!("Not expected {}", t.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, t.as_str()),
                                     },
                                     None => {
                                         return Some(TypeDec {
@@ -243,9 +254,9 @@ fn parse_type(
                                             for index in er.into_inner() {
                                                 match index.as_rule() {
                                                     Rule::integer_literal => {
-                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
+                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse integer literal"));
                                                     }
-                                                    _ => panic!("Not expected {}", index.as_str()),
+                                                    _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                                 }
                                             }
                                             return Some(TypeDec {
@@ -254,7 +265,7 @@ fn parse_type(
                                                 dimensions: dim.clone(),
                                             });
                                         }
-                                        _ => panic!("Not expected {}", er.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, er.as_str()),
                                     },
                                     None => {
                                         return Some(TypeDec {
@@ -278,7 +289,7 @@ fn parse_type(
                                                     .expect("Failed to parse intereger literal"),
                                             );
                                         }
-                                        _ => panic!("Not expected {}", index.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                     }
                                 }
                                 return Some(TypeDec {
@@ -287,7 +298,7 @@ fn parse_type(
                                     dimensions: dim.clone(),
                                 });
                             }
-                            _ => panic!("Not expected {}", t.as_str()),
+                            _ => panic!("Not expected at {} for {}",line, t.as_str()),
                         }
                     }
                     None => {
@@ -307,7 +318,7 @@ fn parse_type(
                             ExprType::String(ss) => ss,
                             ExprType::Integer(ir) => ir.to_string(),
                             ExprType::Fixed(fr) => fr.to_string(),
-                            _ => panic!("Cannot parse to string expr"),
+                            _ => panic!("Cannot parse to string expr at {}", x.as_str()),
                         };
                         match inner.next() {
                             Some(t) => match t.as_rule() {
@@ -320,7 +331,7 @@ fn parse_type(
                                                     Rule::integer_literal => {
                                                         dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
                                                     }
-                                                    _ => panic!("Not expected {}", index.as_str()),
+                                                    _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                                 }
                                             }
                                             return Some(TypeDec {
@@ -329,7 +340,7 @@ fn parse_type(
                                                 dimensions: dim.clone(),
                                             });
                                         }
-                                        _ => panic!("Not expected {}", er.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, er.as_str()),
                                     },
                                     None => {
                                         return Some(TypeDec {
@@ -354,7 +365,7 @@ fn parse_type(
                                                         ),
                                                 );
                                             }
-                                            _ => panic!("Not expected {}", index.as_str()),
+                                            _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                         }
                                     }
                                     return Some(TypeDec {
@@ -363,7 +374,7 @@ fn parse_type(
                                         dimensions: dim.clone(),
                                     });
                                 }
-                                _ => panic!("Not expected {}", t.as_str()),
+                                _ => panic!("Not expected at {} for {}",line, t.as_str()),
                             },
                             None => {
                                 return Some(TypeDec {
@@ -384,9 +395,9 @@ fn parse_type(
                                             for index in er.into_inner() {
                                                 match index.as_rule() {
                                                     Rule::integer_literal => {
-                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse intereger literal"));
+                                                        dim.push(index.as_span().as_str().parse::<usize>().expect("Failed to parse integer literal"));
                                                     }
-                                                    _ => panic!("Not expected {}", index.as_str()),
+                                                    _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                                 }
                                             }
                                             return Some(TypeDec {
@@ -395,7 +406,7 @@ fn parse_type(
                                                 dimensions: dim.clone(),
                                             });
                                         }
-                                        _ => panic!("Not expected {}", er.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, er.as_str()),
                                     },
                                     None => {
                                         return Some(TypeDec {
@@ -419,7 +430,7 @@ fn parse_type(
                                                     .expect("Failed to parse intereger literal"),
                                             );
                                         }
-                                        _ => panic!("Not expected {}", index.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                     }
                                 }
                                 return Some(TypeDec {
@@ -428,7 +439,7 @@ fn parse_type(
                                     dimensions: dim.clone(),
                                 });
                             }
-                            _ => panic!("Not expected {}", t.as_str()),
+                            _ => panic!("Not expected at {} for {}",line, t.as_str()),
                         },
                         None => {
                             return Some(TypeDec {
@@ -464,11 +475,11 @@ fn parse_type(
                                                             .expect("Failed to parse intereger literal"),
                                                     );
                                                     }
-                                                    _ => panic!("Not expected {}", index.as_str()),
+                                                    _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                                 }
                                             }
                                         }
-                                        _ => panic!("Not expected {}", r1.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, r1.as_str()),
                                     },
                                     None => (),
                                 }
@@ -485,11 +496,11 @@ fn parse_type(
                                                     .expect("Failed to parse intereger literal"),
                                             );
                                         }
-                                        _ => panic!("Not expected {}", index.as_str()),
+                                        _ => panic!("Not expected at {} for {}",line, index.as_str()),
                                     }
                                 }
                             }
-                            _ => panic!("Not expected {}", r.as_str()),
+                            _ => panic!("Not expected at {} for {}",line, r.as_str()),
                         }
                     }
                     None => (),
@@ -567,36 +578,35 @@ fn parse_todo_type(
     }
     match privacy {
         Privacy::Forall => {
-            if purt.contains_key(&key) {
-                match purt.get_mut(&key) {
+            match purt.get_mut(&key) {
                     Some(v1) => v1.push(p),
-                    None => {
-                        purt.insert(key, vec![p]);
-                    }
+            None => {
+                    purt.insert(key, vec![p]);
                 }
-            } else {
-                purt.insert(key, vec![p]);
             }
-        }
-        Privacy::Mine => {
-            if prrt.contains_key(&key) {
-                match prrt.get_mut(&key) {
-                    Some(v1) => v1.push(p),
-                    None => {
-                        prrt.insert(key, vec![p]);
-                    }
+        },
+        Privacy::Mine => {  
+            match prrt.get_mut(&key) {
+                Some(v1) => v1.push(p),
+                None => {
+                    prrt.insert(key, vec![p]);
                 }
-            } else {
-                prrt.insert(key, vec![p]);
             }
+           
         }
     }
 }
 
-/* TODO
+/*
+fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Expr {
+
+}
+
+
 fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
 
-}*/
+}
+*/
 
 fn parse_ritual(
     line: &str,
@@ -610,7 +620,6 @@ fn parse_ritual(
     let mut privacy: Privacy = Privacy::Forall;
     let mut identifier = "";
     let mut pars: Vec<Par> = Vec::new();
-    println!("{:#?}", line);
     loop {
         let p = inner.next();
         match p {
@@ -635,6 +644,7 @@ fn parse_ritual(
                                 Rule::element_ident => {
                                     id = p2.into_inner().as_str();
                                     match parse_type(
+                                        line,
                                         i2.next().expect("No type found"),
                                         ExprType::None,
                                         file,
@@ -647,6 +657,7 @@ fn parse_ritual(
                                 }
                                 Rule::typee => {
                                     match parse_type(
+                                        line,
                                         p2,
                                         ExprType::None,
                                         file,
@@ -685,20 +696,19 @@ fn parse_ritual(
 
 fn parse_attachment(line: &str, pair: Pair<Rule>) -> (String, Attachment) {
     let mut inner = pair.into_inner();
-    println!("{:#?}", line);
     let file_type = match inner.next() {
         Some(p) => match p.as_span().as_str() {
             "necr" => FileType::Necr,
             "wiza" => FileType::Wiza,
             "sorc" => FileType::Sorc,
             "hexy" => FileType::Hexy,
-            _ => panic!("No proper type given for {:#?}", line),
+            _ => panic!("No proper type given for {}", line),
         },
-        None => panic!("No type given for {:#?}", line),
+        None => panic!("No type given for {}", line),
     };
     let file_name = match inner.next() {
         Some(p) => p.as_span().as_str(),
-        None => panic!("No filename given for {:#?}", line),
+        None => panic!("No filename given for {}", line),
     };
     let identifier = match inner.next() {
         Some(p) => p.as_span().as_str(),
