@@ -21,7 +21,7 @@
 			},
 			{
 				"name" : "storage.type.ensourcel",
-				"match": "\\b(spell|attach|ritual|sigil|embed|int|str|string|float|fixed|char)\\b"
+				"match": "\\b(spell|attach|ritual|sigil|embed)\\b"
 			},
 			{
 				"name" : "storage.modifier.ensourcel",

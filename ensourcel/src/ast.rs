@@ -6,7 +6,7 @@ use std::mem;
 pub const BYE_SIZE : usize = 8;
 pub const MEM_SIZE : usize = mem::size_of::<usize>();
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum FileType {
     Necr,
     Sorc,
@@ -164,7 +164,7 @@ impl Type {
 
     pub fn str(str_size : usize) -> Type {
         Type {
-            identifier: String::from("s"),
+            identifier: String::from("str"),
             signed: false,
             size: str_size + 1,
         }
@@ -190,7 +190,7 @@ pub struct File {
     pub content: Vec<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Attachment {
     pub file_name: String,
     pub file_type: FileType

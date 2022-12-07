@@ -1,6 +1,7 @@
 WHITESPACE = _{" "}
 COMMENT = _{"@" ~ (!("@" | NEWLINE) ~ANY)* ~ ("@" | NEWLINE)}
 indent = _{ "\t" | "----"}
+global_arg = @{"$" ~ ASCII_DIGIT+}
 identifier = @{ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
 integer_literal = @{ASCII_DIGIT+ ~"i" | ASCII_DIGIT+}
 char_literal = @{"'" ~ ANY  ~ "'"| ASCII_DIGIT+ ~"c"}
@@ -82,7 +83,7 @@ assign_calc = {mal? ~ identifier ~ assign_ops ~ say_or_calc}
 binary_calc = {(post | pre | neg | not | sign | unsign | index | say) ~ (binary_ops ~ say_or_calc)+}
 ternary = { ( binary_calc | post | pre | neg | not | sign | unsign | index | say) ~ "?" ~ say_or_calc ~ ":" ~ say_or_calc }
 
-literals = _{hex_literal | bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
+literals = _{global_arg | hex_literal | bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
             
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
@@ -121,4 +122,5 @@ dec_or_say = _{cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&
 in_file_dec = _{spell_dec | attach | ritual_dec | dec_or_say}
 
 
-file = _{indent* ~ COMMENT ~file | NEWLINE ~ indent* ~ file | (((ctx ~  in_file_dec ) ~ DROP ~ (NEWLINE ~ file | EOI))*)}
+doc = _{indent* ~ COMMENT ~doc | NEWLINE ~ indent* ~ doc | (((ctx ~  in_file_dec ) ~ DROP ~ (NEWLINE ~ doc | EOI))*)}
+file = _{SOI ~ doc ~ EOI}

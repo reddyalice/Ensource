@@ -1,0 +1,7 @@
+attach necr casting_lambda
+attach necr conditional_case
+attach necr ritual_test
+
+cast -> casting_lambda
+cast -> conditional_case
+cast -> ritual_test

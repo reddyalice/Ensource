@@ -1,0 +1,5 @@
+attach necr ritual_test
+
+spell : Cat new <- name:str, age:i32 :
+    -> Cat{ name, age}
+

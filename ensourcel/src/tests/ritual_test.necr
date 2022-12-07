@@ -1,3 +1,7 @@
+ritual Tech:
+	cat : Cat
+	age : i32
+
 ritual Cat:
-	name : Cat*
+	name : str
 	age : i32

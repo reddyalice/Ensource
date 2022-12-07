@@ -1,7 +1,5 @@
-cast asd -> embed : i32 <- d:i32:
-	if t:
-		v : i32, d : f32 = 1,1.
-
-ritual Tech:
-	name : Cat*
-	age : i32
+cast d100 -> embed : i32 <- d:i32:
+	if d < 50:
+		-> d
+	else:
+		-> 50

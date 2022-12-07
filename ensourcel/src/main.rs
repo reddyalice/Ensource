@@ -1,7 +1,7 @@
 mod ast;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
-use crate::ast::File;
+use crate::ast::{File, Attachment};
 
 
 extern crate pest;
@@ -11,8 +11,8 @@ mod parser;
 use parser::parse;
 
 fn main() {
-    let mut files : HashMap<String, File> = HashMap::new();
-    parse("src/tests/", &mut files);
+    let mut files : HashMap<Attachment, File> = HashMap::new();
+    parse(Path::new("src/tests/cast.necr"), &mut files);
     println!("{:#?}", files);
     
 }
