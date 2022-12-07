@@ -64,7 +64,7 @@ randomness = {("dice " ~ (float_literal | integer_literal) ~ (float_literal | in
 				| (("d4" | "d6" | "d8" | "d12" | "d20" | "d100") ~ "f"?)}
 
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
-else_case  = {NEWLINE ~ PEEK_ALL ~ "else " ~ (if_case | do_or_return)}
+else_case  = {NEWLINE ~ PEEK_ALL ~ "else" ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
 cond = _{if_case | channeling}
 wait = {"wait " ~ say_or_calc}
@@ -77,13 +77,13 @@ privacy = {"forall " | "mine " }
 target = {"golem" | "whisper" }
 type_def = _{":" ~ typee}
 
-binary_ops = _{add | sub | and | or | bigger | lesser | mul | divide | equal |not_equal | power | b_equal | l_equal | rem}
+binary_ops = _{add | sub | and | or | b_equal | l_equal | bigger | lesser | mul | divide | equal |not_equal | power  | rem}
 assign_ops = _{add_assign | sub_assign | and_assign | or_assign | mul_assign | div_assign | pow_assign}
 assign_calc = {mal? ~ identifier ~ assign_ops ~ say_or_calc}
 binary_calc = {(post | pre | neg | not | sign | unsign | index | say) ~ (binary_ops ~ say_or_calc)+}
 ternary = { ( binary_calc | post | pre | neg | not | sign | unsign | index | say) ~ "?" ~ say_or_calc ~ ":" ~ say_or_calc }
 
-literals = _{global_arg | hex_literal | bool_literal | string_literal | float_literal | char_literal| integer_literal | ritual_const | identifier | "(" ~calc ~ ")"  }
+literals = _{ hex_literal | bool_literal | string_literal | float_literal | char_literal| integer_literal | global_arg | ritual_const | identifier | "(" ~calc ~ ")"  }
             
 args = {say_or_calc ~ ("," ~ say_or_calc)*}
 
@@ -91,7 +91,7 @@ pars = {identifier ~ type_def? ~("," ~ identifier ~ type_def?)*}
 ft_pars = {identifier ~ type_def ~("," ~ identifier ~ type_def)*}
 
 
-rtrn = {"->" ~ (calc | dec_or_say | identifier) | ( "(" ~ rtrn ~ ")")}
+rtrn = {"->" ~ (say_or_calc) | ( "(" ~ rtrn ~ ")")}
 do_or_return = _{n_doo | rtrn }
 sigil_asg = {(decoration? ~ mal? ~ "sigil "  ~ identifier ~ type_def?)  | (decoration? ~ mal? ~ "sigil "?  ~ ((pars ~ ("<-" | "=" ) ~args ) | ( args ~ "->" ~ pars))) | assign_calc}
 print = { "say " ~ string_literal ~ ("<-" ~ args)?}

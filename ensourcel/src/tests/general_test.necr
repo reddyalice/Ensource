@@ -27,5 +27,5 @@ ritual test2:
 	v : test[2,4]
 	a : i64
  a = test{ a, 
-      r:3 }
+      r: $0 }
 attach necr a as b

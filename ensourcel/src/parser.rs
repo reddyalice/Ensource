@@ -59,7 +59,7 @@ fn create_file(
 }
 
 fn get_file(
-    dirpath: &str,
+    filepath: &str,
     attachment: &Attachment,
     files: &mut HashMap<Attachment, File>,
     unparsed: &mut HashMap<Attachment, String>,
@@ -67,6 +67,7 @@ fn get_file(
     if files.contains_key(attachment) && unparsed.contains_key(attachment) {
         return false;
     }
+    println!("{}", filepath);
     files.insert(
         attachment.clone(),
         File {
@@ -80,19 +81,54 @@ fn get_file(
         },
     );
 
-    let extension = match attachment.file_type {
-        FileType::Necr => ".necr",
-        FileType::Wiza => ".wiza",
-        FileType::Sorc => ".sorc",
-        FileType::Hexy => ".hexy",
-    };
-
-    let filepath = dirpath.to_owned() + &attachment.file_name + extension;
     unparsed.insert(
         attachment.clone(),
         String::from(fs::read_to_string(filepath).expect("Couldn't read")),
     );
     return true;
+}
+
+fn get_from_attachments(
+    dirp: &str,
+    file: &File,
+    purt: &mut HashMap<(String, String), Vec<String>>,
+    prrt: &mut HashMap<(String, String), Vec<String>>,
+    files: &mut HashMap<Attachment, File>,
+    unparsed: &mut HashMap<Attachment, String>,
+) {
+    for attachment in &file.attachments {
+        let extension = match &attachment.1.file_type {
+            FileType::Necr => ".necr",
+            FileType::Wiza => ".wiza",
+            FileType::Sorc => ".sorc",
+            FileType::Hexy => ".hexy",
+        };
+        let filepath = dirp.to_owned() + "/" + &attachment.1.file_name + extension;
+        if (get_file(&filepath, &attachment.1, files, unparsed)) {
+            let parsed = EnsourceLParser::parse(
+                Rule::file,
+                unparsed.get(attachment.1).expect("Couldn't get unparsed"),
+            );
+            match parsed {
+                Ok(mut rules) => {
+                    let mut file = files
+                        .get_mut(attachment.1)
+                        .expect("Couldn't get the file")
+                        .clone();
+                    pre_parse(&mut rules, &mut file, purt, prrt, files);
+                    let dirpath = Path::new(&filepath)
+                        .parent()
+                        .expect("Directory couldn't be reached")
+                        .to_str()
+                        .expect("Couldn't parse!");
+
+                    get_from_attachments(dirpath, &file, purt, prrt, files, unparsed);
+                    files.insert(attachment.1.clone(), file);
+                }
+                Err(e) => panic!("\n{}", e),
+            }
+        }
+    }
 }
 
 pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
@@ -117,18 +153,22 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
                     &mut private_ritual_todo,
                     files,
                 );
+                let dirpath = Path::new(&filepath)
+                    .parent()
+                    .expect("Directory couldn't be reached")
+                    .to_str()
+                    .expect("Couldn't parse!");
+                get_from_attachments(
+                    dirpath,
+                    &file,
+                    &mut public_ritual_todo,
+                    &mut private_ritual_todo,
+                    files,
+                    &mut unparsed,
+                );
                 files.insert(key.clone(), file);
-                //for attach in files.get(key).expect("File couldn't be inserted").attachments {
-                //    if(get_file(filepath + "../", attachment, files, &mut unparsed)) {
-
-                //    }
-                //}
-
-
-
                 println!("Public Ritual TODO {:#?}", public_ritual_todo);
                 println!("Public Ritual TODO {:#?}", private_ritual_todo);
-                
             }
             Err(e) => panic!("\n{}", e),
         }
@@ -147,12 +187,10 @@ fn pre_parse(
         match pair.as_rule() {
             Rule::attach => {
                 let at = parse_attachment(pair.as_str(), pair);
-
                 file.attachments.insert(at.0, at.1);
             }
             Rule::ritual_dec => {
                 let rd = parse_ritual(pair.as_str(), pair, file, purt, prrt, files);
-
                 file.rituals.insert(rd.0, rd.1);
             }
             _ => (),

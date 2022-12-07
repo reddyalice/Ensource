@@ -32,6 +32,10 @@
 				"match": "\\+|\\-|\\^|\\=|\\*"
 			},
 			{
+				"name": "support.variable.ensourcel",
+				"match": "\\$[0-9]*"
+			},
+			{
 				"name": "variable.name.ensourcel",
 				"match": "[A-Za-z_][A-Za-z0-9_]*"
 			}
