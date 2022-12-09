@@ -13,7 +13,7 @@ pub struct EnsourceLParser;
 
 #[derive(Clone, Debug)]
 struct TypeHolder {
-    identifier : String,
+    identifier: String,
     prim: String,
     pointer: bool,
     dimensions: Vec<usize>,
@@ -190,12 +190,6 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
                         &mut private_ritual_todo,
                         files,
                     );
-                    if public_ritual_todo.contains_key(&todo.0){
-                        public_ritual_todo.remove(&todo.0);
-                    }else if private_ritual_todo.contains_key(&todo.0) {
-                        private_ritual_todo.remove(&todo.0);
-                    }
-
                 }
                 println!("Public Ritual TODO {:#?}", &public_ritual_todo);
                 println!("Private Ritual TODO {:#?}", &private_ritual_todo);
@@ -205,27 +199,36 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
     }
 }
 
+// I need to find a way to prevent infinite sizes
 fn do_todo(
     todo: &((String, Attachment), Vec<TypeHolder>),
     purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     files: &mut HashMap<Attachment, File>,
 ) {
+    //Removes the value at the beginning so no loops or repetitions
+    if purt.contains_key(&todo.0) {
+        purt.remove(&todo.0);
+    } else if prrt.contains_key(&todo.0) {
+        prrt.remove(&todo.0);
+    }
+
     for holder in &todo.1 {
         let private_key = &(holder.prim.clone(), ((todo.0).1).clone());
 
         match prrt.get(private_key) {
             Some(rits) => {
-                println!("Found!");
                 do_todo(&(private_key.clone(), rits.clone()), purt, prrt, files);
 
                 let file = files.get_mut(&todo.0 .1).expect("Couldn't get file");
                 let rts = &mut file.rituals;
-                let r1 = &rts
-                    .get(&holder.prim)
-                    .expect("Coudln't get ritual")
-                    .clone();
+                let r1 = &rts.get(&holder.prim).expect("Coudln't get ritual").clone();
                 let r0 = rts.get_mut(&todo.0 .0).expect("Coudln't get ritual");
+
+                r0.content.retain(|x| {
+                    !(x.identifier == (&holder.identifier).clone()
+                        && x.par_type.base_type.identifier == (&holder.prim).clone())
+                });
 
                 r0.content.push(Par {
                     identifier: (&holder.identifier).clone(),
@@ -238,13 +241,19 @@ fn do_todo(
             }
             None => {
                 let mut file = files.get(&todo.0 .1).expect("Couldn't get file").clone();
-                match (files.get(&todo.0.1).expect("Couldn't get tge fie").rituals).get(&holder.prim) {
+                match (files.get(&todo.0 .1).expect("Couldn't get tge fie").rituals)
+                    .get(&holder.prim)
+                {
                     Some(rit) => {
                         let r0 = file
                             .rituals
                             .get_mut(&todo.0 .0)
                             .expect("Coudln't get ritual");
                         let r1 = rit.clone();
+                        r0.content.retain(|x| {
+                            !(x.identifier == (&holder.identifier).clone()
+                                && x.par_type.base_type.identifier == (&holder.prim).clone())
+                        });
                         r0.content.push(Par {
                             identifier: (&holder.identifier).clone(),
                             par_type: TypeDec {
@@ -276,6 +285,11 @@ fn do_todo(
                                             .get_mut(&todo.0 .0)
                                             .expect("Coudln't get ritual");
                                         let r1 = rit.clone();
+                                        r0.content.retain(|x| {
+                                            !(x.identifier == (&holder.identifier).clone()
+                                                && x.par_type.base_type.identifier
+                                                    == (&holder.prim).clone())
+                                        });
                                         r0.content.push(Par {
                                             identifier: (&holder.identifier).clone(),
                                             par_type: TypeDec {
@@ -287,7 +301,6 @@ fn do_todo(
                                                 dimensions: holder.dimensions.clone(),
                                             },
                                         });
-                                        purt.remove(public_key);
                                     }
                                     None => {
                                         let r0 = file
@@ -295,6 +308,11 @@ fn do_todo(
                                             .get_mut(&todo.0 .0)
                                             .expect("Coudln't get ritual");
                                         let r1 = rit.clone();
+                                        r0.content.retain(|x| {
+                                            !(x.identifier == (&holder.identifier).clone()
+                                                && x.par_type.base_type.identifier
+                                                    == (&holder.prim).clone())
+                                        });
                                         r0.content.push(Par {
                                             identifier: (&holder.identifier).clone(),
                                             par_type: TypeDec {
@@ -365,7 +383,7 @@ fn parse_rest(rules: Pairs<Rule>, file: &mut File, files: &mut HashMap<Attachmen
 }
 
 fn parse_type(
-    ident : String,
+    ident: String,
     line: &str,
     pair: Pair<Rule>,
     expr: ExprType,
@@ -804,7 +822,7 @@ fn parse_type(
 }
 
 fn parse_todo_type(
-    identifier : String,
+    identifier: String,
     prim: String,
     pointer: bool,
     dimensions: &Vec<usize>,
