@@ -11,6 +11,14 @@ use std::{collections::HashMap, fs, path::Path};
 #[grammar = "grammar.pest"]
 pub struct EnsourceLParser;
 
+#[derive(Clone, Debug)]
+struct TypeHolder {
+    identifier : String,
+    prim: String,
+    pointer: bool,
+    dimensions: Vec<usize>,
+}
+
 fn create_file(
     filepath: &Path,
     files: &mut HashMap<Attachment, File>,
@@ -91,8 +99,8 @@ fn get_file(
 fn get_from_attachments(
     dirp: &str,
     file: &File,
-    purt: &mut HashMap<(String, String), Vec<String>>,
-    prrt: &mut HashMap<(String, String), Vec<String>>,
+    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     files: &mut HashMap<Attachment, File>,
     unparsed: &mut HashMap<Attachment, String>,
 ) {
@@ -142,8 +150,9 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
         );
         match parsed {
             Ok(mut rules) => {
-                let mut public_ritual_todo: HashMap<(String, String), Vec<String>> = HashMap::new();
-                let mut private_ritual_todo: HashMap<(String, String), Vec<String>> =
+                let mut public_ritual_todo: HashMap<(String, Attachment), Vec<TypeHolder>> =
+                    HashMap::new();
+                let mut private_ritual_todo: HashMap<(String, Attachment), Vec<TypeHolder>> =
                     HashMap::new();
                 let mut file = files.get_mut(key).expect("Couldn't get the file").clone();
                 pre_parse(
@@ -167,10 +176,147 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
                     &mut unparsed,
                 );
                 files.insert(key.clone(), file);
-                println!("Public Ritual TODO {:#?}", public_ritual_todo);
-                println!("Public Ritual TODO {:#?}", private_ritual_todo);
+
+                let mut combined = ((&public_ritual_todo).clone());
+                combined.extend((&private_ritual_todo).clone());
+                println!("Public Ritual TODO {:#?}", &public_ritual_todo);
+                println!("Private Ritual TODO {:#?}", &private_ritual_todo);
+                println!("Combined TODO {:#?}", &combined);
+
+                for todo in combined {
+                    do_todo(
+                        &todo,
+                        &mut public_ritual_todo,
+                        &mut private_ritual_todo,
+                        files,
+                    );
+                    if public_ritual_todo.contains_key(&todo.0){
+                        public_ritual_todo.remove(&todo.0);
+                    }else if private_ritual_todo.contains_key(&todo.0) {
+                        private_ritual_todo.remove(&todo.0);
+                    }
+
+                }
+                println!("Public Ritual TODO {:#?}", &public_ritual_todo);
+                println!("Private Ritual TODO {:#?}", &private_ritual_todo);
             }
             Err(e) => panic!("\n{}", e),
+        }
+    }
+}
+
+fn do_todo(
+    todo: &((String, Attachment), Vec<TypeHolder>),
+    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    files: &mut HashMap<Attachment, File>,
+) {
+    for holder in &todo.1 {
+        let private_key = &(holder.prim.clone(), ((todo.0).1).clone());
+
+        match prrt.get(private_key) {
+            Some(rits) => {
+                println!("Found!");
+                do_todo(&(private_key.clone(), rits.clone()), purt, prrt, files);
+
+                let file = files.get_mut(&todo.0 .1).expect("Couldn't get file");
+                let rts = &mut file.rituals;
+                let r1 = &rts
+                    .get(&holder.prim)
+                    .expect("Coudln't get ritual")
+                    .clone();
+                let r0 = rts.get_mut(&todo.0 .0).expect("Coudln't get ritual");
+
+                r0.content.push(Par {
+                    identifier: (&holder.identifier).clone(),
+                    par_type: TypeDec {
+                        base_type: Type::from_ritual((&holder.prim).clone(), r1),
+                        pointer: holder.pointer,
+                        dimensions: holder.dimensions.clone(),
+                    },
+                });
+            }
+            None => {
+                let mut file = files.get(&todo.0 .1).expect("Couldn't get file").clone();
+                match (files.get(&todo.0.1).expect("Couldn't get tge fie").rituals).get(&holder.prim) {
+                    Some(rit) => {
+                        let r0 = file
+                            .rituals
+                            .get_mut(&todo.0 .0)
+                            .expect("Coudln't get ritual");
+                        let r1 = rit.clone();
+                        r0.content.push(Par {
+                            identifier: (&holder.identifier).clone(),
+                            par_type: TypeDec {
+                                base_type: Type::from_ritual((&holder.prim).clone(), &r1),
+                                pointer: holder.pointer,
+                                dimensions: holder.dimensions.clone(),
+                            },
+                        });
+                    }
+                    None => {
+                        for attach in &file.attachments {
+                            let f1 = &files
+                                .get(attach.1)
+                                .expect("Couldn't get attachment")
+                                .clone();
+                            let public_key = &(holder.prim.clone(), ((attach.1).clone()));
+                            match (&f1.rituals).get(&holder.prim) {
+                                Some(rit) => match purt.get(public_key) {
+                                    Some(rits) => {
+                                        do_todo(
+                                            &(public_key.clone(), rits.clone()),
+                                            purt,
+                                            prrt,
+                                            files,
+                                        );
+
+                                        let r0 = file
+                                            .rituals
+                                            .get_mut(&todo.0 .0)
+                                            .expect("Coudln't get ritual");
+                                        let r1 = rit.clone();
+                                        r0.content.push(Par {
+                                            identifier: (&holder.identifier).clone(),
+                                            par_type: TypeDec {
+                                                base_type: Type::from_ritual(
+                                                    (&holder.prim).clone(),
+                                                    &r1,
+                                                ),
+                                                pointer: holder.pointer,
+                                                dimensions: holder.dimensions.clone(),
+                                            },
+                                        });
+                                        purt.remove(public_key);
+                                    }
+                                    None => {
+                                        let r0 = file
+                                            .rituals
+                                            .get_mut(&todo.0 .0)
+                                            .expect("Coudln't get ritual");
+                                        let r1 = rit.clone();
+                                        r0.content.push(Par {
+                                            identifier: (&holder.identifier).clone(),
+                                            par_type: TypeDec {
+                                                base_type: Type::from_ritual(
+                                                    (&holder.prim).clone(),
+                                                    &r1,
+                                                ),
+                                                pointer: holder.pointer,
+                                                dimensions: holder.dimensions.clone(),
+                                            },
+                                        });
+                                    }
+                                },
+                                None => {
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                files.insert((todo.0 .1).clone(), file);
+            }
         }
     }
 }
@@ -178,8 +324,8 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
 fn pre_parse(
     rules: &mut Pairs<Rule>,
     file: &mut File,
-    purt: &mut HashMap<(String, String), Vec<String>>,
-    prrt: &mut HashMap<(String, String), Vec<String>>,
+    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     files: &mut HashMap<Attachment, File>,
 ) {
     for pair in rules {
@@ -219,6 +365,7 @@ fn parse_rest(rules: Pairs<Rule>, file: &mut File, files: &mut HashMap<Attachmen
 }
 
 fn parse_type(
+    ident : String,
     line: &str,
     pair: Pair<Rule>,
     expr: ExprType,
@@ -226,8 +373,8 @@ fn parse_type(
     owner_id: Option<(
         &str,
         &Privacy,
-        &mut HashMap<(String, String), Vec<String>>,
-        &mut HashMap<(String, String), Vec<String>>,
+        &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+        &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     )>,
     files: &mut HashMap<Attachment, File>,
 ) -> Option<TypeDec> {
@@ -608,6 +755,7 @@ fn parse_type(
                             panic!("Ritual size is infinite");
                         } else {
                             parse_todo_type(
+                                ident,
                                 String::from(prim),
                                 pointer,
                                 &dim,
@@ -656,21 +804,30 @@ fn parse_type(
 }
 
 fn parse_todo_type(
+    identifier : String,
     prim: String,
     pointer: bool,
     dimensions: &Vec<usize>,
     file: &mut File,
     owner_id: String,
-    prrt: &mut HashMap<(String, String), Vec<String>>,
-    purt: &mut HashMap<(String, String), Vec<String>>,
+    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     privacy: &Privacy,
 ) {
-    let key = (owner_id, file.file_name.clone());
-    let mut p = prim + if pointer { "/p" } else { "" };
-    if dimensions.len() > 0 {
-        p.push_str("/d");
-        p.push_str(&*format!("{:?}", dimensions));
-    }
+    let key = (
+        owner_id,
+        Attachment {
+            file_name: (&file.file_name).clone(),
+            file_type: file.file_type,
+        },
+    );
+    let mut p = TypeHolder {
+        identifier,
+        prim,
+        pointer,
+        dimensions: dimensions.clone(),
+    };
+
     match privacy {
         Privacy::Forall => match purt.get_mut(&key) {
             Some(v1) => v1.push(p),
@@ -702,8 +859,8 @@ fn parse_ritual(
     line: &str,
     pair: Pair<Rule>,
     file: &mut File,
-    purt: &mut HashMap<(String, String), Vec<String>>,
-    prrt: &mut HashMap<(String, String), Vec<String>>,
+    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
     files: &mut HashMap<Attachment, File>,
 ) -> (String, Ritual) {
     let mut inner = pair.into_inner();
@@ -734,6 +891,7 @@ fn parse_ritual(
                                 Rule::element_ident => {
                                     id = p2.into_inner().as_str();
                                     match parse_type(
+                                        String::from(id),
                                         line,
                                         i2.next().expect("No type found"),
                                         ExprType::None,
@@ -747,6 +905,7 @@ fn parse_ritual(
                                 }
                                 Rule::typee => {
                                     match parse_type(
+                                        String::from(id),
                                         line,
                                         p2,
                                         ExprType::None,

@@ -1,0 +1,3 @@
+ritual Brand:
+	year : ui16
+	name : str
