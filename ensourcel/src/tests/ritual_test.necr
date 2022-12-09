@@ -6,3 +6,4 @@ mine ritual Tech:
 mine ritual Cat:
 	name : str
 	age : i32
+	tech : Tech*
