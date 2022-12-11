@@ -49,10 +49,11 @@ post = _{post_incr | post_decr}
 pre = _ {pre_incr | pre_decr}
 
 
-not = {not_s ~ say}
-neg = {"-" ~ say}
-sign = {sign_s ~ say}
-unsign = {(unsign_s) ~ say}
+not = {not_s ~ say_or_calc}
+neg = {"-" ~ say_or_calc}
+cleanse = {"cleanse" ~ say_or_calc}
+sign = {sign_s ~ say_or_calc}
+unsign = {(unsign_s) ~ say_or_calc}
 transmute = {"transmute"? ~((say ~ "as" ~ typee) | (typee ~ "of" ~ say_or_calc))}
 index = { say ~ "[" ~ say_or_calc ~ "]"}
 
@@ -117,7 +118,7 @@ attach = {"attach " ~ file_type ~ identifier ~ "as "? ~ identifier?}
 decoration = _{(privacy ~ target) | (target ~ privacy) | privacy | target}
 spell_dec = {decoration? ~ "spell " ~ type_def? ~ identifier ~ ("<-" ~ ft_pars)? ~ do_or_return?}
 
-calc = _{  transmute | ternary | binary_calc | post | pre | neg | not | sign | unsign | index}
+calc = _{  transmute | ternary | binary_calc | post | pre | neg | not | sign | unsign | cleanse | index}
 dec_or_say = _{cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
 in_file_dec = _{spell_dec | attach | ritual_dec | dec_or_say}
 

@@ -12,7 +12,7 @@ use parser::parse;
 
 fn main() {
     let mut files : HashMap<Attachment, File> = HashMap::new();
-    parse(Path::new("src/tests/cast.necr"), &mut files);
+    let entry_key = parse(Path::new("src/tests/cast.necr"), &mut files);
     println!("{:#?}", files);
     
 }

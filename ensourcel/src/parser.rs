@@ -139,7 +139,7 @@ fn get_from_attachments(
     }
 }
 
-pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
+pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) -> Attachment {
     let mut unparsed: HashMap<Attachment, String> = HashMap::new();
     let key = &create_file(filepath, files, &mut unparsed);
 
@@ -196,7 +196,25 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) {
             }
             Err(e) => panic!("\n{}", e),
         }
+
+        for attach in &unparsed {
+            let parsed = EnsourceLParser::parse(
+                Rule::file,
+                attach.1,
+            );
+
+            let mut file = files.get_mut(attach.0).expect("Couldn't get the file").clone();
+            match parsed {
+                Ok(rules) => parse_rest(rules, &mut file, files),
+                Err(e) => panic!("\n{}", e),
+            }
+            files.insert(attach.0.clone(), file);
+
+        }
+
+
     }
+    return key.clone();
 }
 
 // I need to find a way to prevent infinite sizes
@@ -369,17 +387,17 @@ fn parse_rest(rules: Pairs<Rule>, file: &mut File, files: &mut HashMap<Attachmen
         let line = pair.as_str();
 
         match pair.as_rule() {
+            Rule::attach => (),
+            Rule::ritual_dec => (),
             Rule::ctx => {
                 let str = pair.as_span().as_str();
                 base_ctx = str.matches("\t").count();
-            }
+            },
             Rule::spell_dec => (), //file.spells.push(parse_spell(base_ctx, line, pair)),
-
             Rule::EOI => (),
-            _ => (), // parse_expr(base_ctx, line, pair),
+            _ => parse_expr(base_ctx, line, pair,file, files),
         }
     }
-    println!("{:#?}", file);
 }
 
 fn parse_type(
@@ -862,12 +880,13 @@ fn parse_todo_type(
     }
 }
 
-/*
-fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>) -> Expr {
 
+fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>,file: &mut File, files: &mut HashMap<Attachment, File>){
+    println!("{}", pair.as_str());
 }
 
 
+/*
 fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
 
 }
