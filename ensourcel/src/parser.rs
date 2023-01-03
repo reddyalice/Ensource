@@ -3,7 +3,7 @@ use core::panic;
 use pest::{
     error::Error,
     iterators::{Pair, Pairs},
-    Parser,
+    Parser, pratt_parser,
 };
 use std::{collections::HashMap, fs, path::Path};
 
@@ -198,21 +198,18 @@ pub fn parse(filepath: &Path, files: &mut HashMap<Attachment, File>) -> Attachme
         }
 
         for attach in &unparsed {
-            let parsed = EnsourceLParser::parse(
-                Rule::file,
-                attach.1,
-            );
+            let parsed = EnsourceLParser::parse(Rule::file, attach.1);
 
-            let mut file = files.get_mut(attach.0).expect("Couldn't get the file").clone();
+            let mut file = files
+                .get_mut(attach.0)
+                .expect("Couldn't get the file")
+                .clone();
             match parsed {
                 Ok(rules) => parse_rest(rules, &mut file, files),
                 Err(e) => panic!("\n{}", e),
             }
             files.insert(attach.0.clone(), file);
-
         }
-
-
     }
     return key.clone();
 }
@@ -365,14 +362,14 @@ fn pre_parse(
     files: &mut HashMap<Attachment, File>,
 ) {
     for pair in rules {
-        println!("{}", pair.as_str());
+        let line = pair.as_str();
         match pair.as_rule() {
             Rule::attach => {
-                let at = parse_attachment(pair.as_str(), pair);
+                let at = parse_attachment(line, pair);
                 file.attachments.insert(at.0, at.1);
             }
             Rule::ritual_dec => {
-                let rd = parse_ritual(pair.as_str(), pair, file, purt, prrt, files);
+                let rd = parse_ritual(line, pair, file, purt, prrt, files);
                 file.rituals.insert(rd.0, rd.1);
             }
             _ => (),
@@ -381,23 +378,207 @@ fn pre_parse(
 }
 
 fn parse_rest(rules: Pairs<Rule>, file: &mut File, files: &mut HashMap<Attachment, File>) {
-    let mut base_ctx: usize = 0;
-
     for pair in rules {
         let line = pair.as_str();
-
+        println!("{:#?}", pair);
         match pair.as_rule() {
             Rule::attach => (),
             Rule::ritual_dec => (),
-            Rule::ctx => {
-                let str = pair.as_span().as_str();
-                base_ctx = str.matches("\t").count();
-            },
             Rule::spell_dec => (), //file.spells.push(parse_spell(base_ctx, line, pair)),
+            Rule::sigil_asg => {
+
+            }
             Rule::EOI => (),
-            _ => parse_expr(base_ctx, line, pair,file, files),
+            _ => () //file.content.push(parse_expr(0, line, pair, file.sigils.clone(), files)),
         }
     }
+}
+
+
+/*fn parse_sigil(
+    context: usize,
+    line: &str,
+    pair: Pair<Rule>
+) -> (String, Sigil){
+    let inner = pair.into_inner();
+}*/
+
+
+
+fn parse_expr(
+    context: usize,
+    line: &str,
+    pair: Pair<Rule>,
+    reachable_sigils: HashMap<String, Sigil>,
+    files: &mut HashMap<Attachment, File>,
+) -> Expr {
+
+    match pair.as_rule() {
+        Rule::hex_literal => {
+            let mut raw = pair.as_span().as_str();
+            raw = raw.trim_start_matches("0x");
+            Expr {
+                context,
+                expr_type: TypeDec {
+                    base_type: Type::int(4),
+                    pointer: false,
+                    dimensions: Vec::new(),
+                },
+                exp: ExprType::Integer(
+                    i32::from_str_radix(raw, 16).expect("Couldn't parse hex literal"),
+                ),
+            }
+        }
+        Rule::integer_literal => {
+            let raw = pair.as_span().as_str();
+            Expr {
+                context,
+                expr_type: TypeDec {
+                    base_type: Type::int(4),
+                    pointer: false,
+                    dimensions: Vec::new(),
+                },
+                exp: ExprType::Integer(raw.parse().expect("Couldn't parse integer literal"))
+            }
+        },
+        Rule::float_literal => {
+            let raw = pair.as_span().as_str();
+            Expr {
+                context,
+                expr_type: TypeDec {
+                    base_type: Type::float(4),
+                    pointer: false,
+                    dimensions: Vec::new(),
+                },
+                exp: ExprType::Float(raw.parse().expect("Couldn't parse float literal"))
+            }
+        }
+        _ => todo!(),
+    }
+}
+
+/*
+fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
+
+}
+*/
+
+fn parse_ritual(
+    line: &str,
+    pair: Pair<Rule>,
+    file: &mut File,
+    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
+    files: &mut HashMap<Attachment, File>,
+) -> (String, Ritual) {
+    let mut inner = pair.into_inner();
+    let mut privacy: Privacy = Privacy::Forall;
+    let mut identifier = "";
+    let mut pars: Vec<Par> = Vec::new();
+    loop {
+        let p = inner.next();
+        match p {
+            Some(p1) => match p1.as_rule() {
+                Rule::privacy => {
+                    privacy = match p1.as_span().as_str() {
+                        "forall" => Privacy::Forall,
+                        "mine" => Privacy::Mine,
+                        _ => Privacy::Forall,
+                    }
+                }
+                Rule::identifier => {
+                    identifier = p1.as_span().as_str();
+                }
+                Rule::ritual_pars => {
+                    let mut i2 = p1.into_inner();
+                    'tloop: loop {
+                        let mut id = "";
+                        let ty: TypeDec;
+                        match i2.next() {
+                            Some(p2) => match p2.as_rule() {
+                                Rule::element_ident => {
+                                    id = p2.into_inner().as_str();
+                                    match parse_type(
+                                        String::from(id),
+                                        line,
+                                        i2.next().expect("No type found"),
+                                        ExprType::None,
+                                        file,
+                                        Option::Some((identifier, &privacy, purt, prrt)),
+                                        files,
+                                    ) {
+                                        Some(t) => ty = t,
+                                        None => continue 'tloop,
+                                    }
+                                }
+                                Rule::typee => {
+                                    match parse_type(
+                                        String::from(id),
+                                        line,
+                                        p2,
+                                        ExprType::None,
+                                        file,
+                                        Option::Some((identifier, &privacy, purt, prrt)),
+                                        files,
+                                    ) {
+                                        Some(t) => ty = t,
+                                        None => continue 'tloop,
+                                    }
+                                }
+                                _ => break,
+                            },
+                            None => break,
+                        }
+                        pars.push(Par {
+                            identifier: String::from(id),
+                            par_type: ty,
+                        });
+                    }
+                }
+                _ => (),
+            },
+
+            None => break,
+        }
+    }
+
+    (
+        String::from(identifier),
+        Ritual {
+            privacy,
+            content: pars.clone(),
+        },
+    )
+}
+
+fn parse_attachment(line: &str, pair: Pair<Rule>) -> (String, Attachment) {
+    let mut inner = pair.into_inner();
+    let file_type = match inner.next() {
+        Some(p) => match p.as_span().as_str() {
+            "necr" => FileType::Necr,
+            "wiza" => FileType::Wiza,
+            "sorc" => FileType::Sorc,
+            "hexy" => FileType::Hexy,
+            _ => panic!("No proper type given for {}", line),
+        },
+        None => panic!("No type given for {}", line),
+    };
+    let file_name = match inner.next() {
+        Some(p) => p.as_span().as_str(),
+        None => panic!("No filename given for {}", line),
+    };
+    let identifier = match inner.next() {
+        Some(p) => p.as_span().as_str(),
+        None => file_name,
+    };
+
+    (
+        String::from(identifier),
+        Attachment {
+            file_name: String::from(file_name),
+            file_type,
+        },
+    )
 }
 
 fn parse_type(
@@ -857,7 +1038,7 @@ fn parse_todo_type(
             file_type: file.file_type,
         },
     );
-    let mut p = TypeHolder {
+    let p = TypeHolder {
         identifier,
         prim,
         pointer,
@@ -880,132 +1061,3 @@ fn parse_todo_type(
     }
 }
 
-
-fn parse_expr(base_ctx: usize, line: &str, pair: Pair<Rule>,file: &mut File, files: &mut HashMap<Attachment, File>){
-    println!("{}", pair.as_str());
-}
-
-
-/*
-fn parse_spell(base_ctx : usize, line: &str, pair : Pair<Rule>) -> Spell{
-
-}
-*/
-
-fn parse_ritual(
-    line: &str,
-    pair: Pair<Rule>,
-    file: &mut File,
-    purt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
-    prrt: &mut HashMap<(String, Attachment), Vec<TypeHolder>>,
-    files: &mut HashMap<Attachment, File>,
-) -> (String, Ritual) {
-    let mut inner = pair.into_inner();
-    let mut privacy: Privacy = Privacy::Forall;
-    let mut identifier = "";
-    let mut pars: Vec<Par> = Vec::new();
-    loop {
-        let p = inner.next();
-        match p {
-            Some(p1) => match p1.as_rule() {
-                Rule::privacy => {
-                    privacy = match p1.as_span().as_str() {
-                        "forall" => Privacy::Forall,
-                        "mine" => Privacy::Mine,
-                        _ => Privacy::Forall,
-                    }
-                }
-                Rule::identifier => {
-                    identifier = p1.as_span().as_str();
-                }
-                Rule::ritual_pars => {
-                    let mut i2 = p1.into_inner();
-                    'tloop: loop {
-                        let mut id = "";
-                        let ty: TypeDec;
-                        match i2.next() {
-                            Some(p2) => match p2.as_rule() {
-                                Rule::element_ident => {
-                                    id = p2.into_inner().as_str();
-                                    match parse_type(
-                                        String::from(id),
-                                        line,
-                                        i2.next().expect("No type found"),
-                                        ExprType::None,
-                                        file,
-                                        Option::Some((identifier, &privacy, purt, prrt)),
-                                        files,
-                                    ) {
-                                        Some(t) => ty = t,
-                                        None => continue 'tloop,
-                                    }
-                                }
-                                Rule::typee => {
-                                    match parse_type(
-                                        String::from(id),
-                                        line,
-                                        p2,
-                                        ExprType::None,
-                                        file,
-                                        Option::Some((identifier, &privacy, purt, prrt)),
-                                        files,
-                                    ) {
-                                        Some(t) => ty = t,
-                                        None => continue 'tloop,
-                                    }
-                                }
-                                _ => break,
-                            },
-                            None => break,
-                        }
-                        pars.push(Par {
-                            identifier: String::from(id),
-                            par_type: ty,
-                        });
-                    }
-                }
-                _ => (),
-            },
-
-            None => break,
-        }
-    }
-
-    (
-        String::from(identifier),
-        Ritual {
-            privacy,
-            content: pars.clone(),
-        },
-    )
-}
-
-fn parse_attachment(line: &str, pair: Pair<Rule>) -> (String, Attachment) {
-    let mut inner = pair.into_inner();
-    let file_type = match inner.next() {
-        Some(p) => match p.as_span().as_str() {
-            "necr" => FileType::Necr,
-            "wiza" => FileType::Wiza,
-            "sorc" => FileType::Sorc,
-            "hexy" => FileType::Hexy,
-            _ => panic!("No proper type given for {}", line),
-        },
-        None => panic!("No type given for {}", line),
-    };
-    let file_name = match inner.next() {
-        Some(p) => p.as_span().as_str(),
-        None => panic!("No filename given for {}", line),
-    };
-    let identifier = match inner.next() {
-        Some(p) => p.as_span().as_str(),
-        None => file_name,
-    };
-
-    (
-        String::from(identifier),
-        Attachment {
-            file_name: String::from(file_name),
-            file_type,
-        },
-    )
-}
