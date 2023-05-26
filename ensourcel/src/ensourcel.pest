@@ -158,14 +158,14 @@ binary_ops = _{ boolean_ops | binary_op_ident}
 assign_ops = _{ assign_op_ident}
 
 boolean_ops = _{ and | or | b_equal | l_equal | bigger | lesser | equal | not_equal}
-binary_calc = {exprs_for_binary_calc ~ (binary_ops ~ exprs)+}
+binary_calc = {#left = exprs ~ (binary_ops ~ exprs)+}
 not = {"!" ~ exprs}
 neg = {"-" ~ exprs}
 unsign = {unsign_keyword ~ exprs}
 dot_operation = {(identifier | "(" ~dot_operation ~ ")") ~ "." ~ (dot_operation+ | identifier) | "(" ~dot_operation ~ ")" }
 key = {exprs}
-get_element = {exprs_for_get_element ~ ("[" ~ key ~  "]")+}
-terrinary__op = {if_keyword ~exprs ~ ":" ~ exprs ~ else_keyword ~ exprs}
+get_element = {#left = exprs ~ ("[" ~ key ~  "]")+}
+terrinary__op = {#left = exprs ~ ":" ~ exprs ~ "?" ~ exprs}
 
 //conditionals
 
