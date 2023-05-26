@@ -3,3 +3,4 @@ cast d100 -> embed : i32 <- d:i32:
 		-> d
 	else:
 		-> 50
+

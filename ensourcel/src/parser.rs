@@ -12,7 +12,7 @@ use std::{collections::HashMap, fs, path::Path};
 pub struct EnsourceLParser;
 
 #[derive(Clone, Debug)]
-struct TypeHolder {
+struct TypeHolder { 
     identifier: String,
     prim: String,
     pointer: bool,
