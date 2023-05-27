@@ -327,7 +327,7 @@ pub struct Dice{
 pub struct Expr{
     pub context : usize,
     pub expr_type : TypeDec,
-    pub sigil : Option<(String, Sigil)>,
+    //pub sigil : Option<(String, Sigil)>,
     pub exp : ExprType
 }
 

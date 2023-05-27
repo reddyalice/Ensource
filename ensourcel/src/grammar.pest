@@ -1,5 +1,5 @@
 WHITESPACE = _{" "}
-COMMENT = _{"@" ~ (!("@" | NEWLINE) ~ANY)* ~ ("@" | NEWLINE)}
+COMMENT = _{"@" ~ (!("@" | newline) ~ANY)* ~ ("@" | newline)}
 indent = _{ "\t" | "----"}
 global_arg = @{"$" ~ ASCII_DIGIT+}
 identifier = @{ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
@@ -65,7 +65,7 @@ randomness = {("dice " ~ (float_literal | integer_literal) ~ (float_literal | in
 				| (("d4" | "d6" | "d8" | "d12" | "d20" | "d100") ~ "f"?)}
 
 if_case = {"if " ~ say_or_calc ~ do_or_return ~ else_case?}
-else_case  = {NEWLINE ~ PEEK_ALL ~ "else" ~ (if_case | do_or_return)}
+else_case  = {newline ~ PEEK_ALL ~ "else" ~ (if_case | do_or_return)}
 channeling = {"channel " ~ ( (sigil_asg ~ "->" ~ say_or_calc ~ "<-"  ~ say_or_calc) | (identifier ~ (":" | "in ") ~ say) | say_or_calc) ~ do_or_return}
 cond = _{if_case | channeling}
 wait = {"wait " ~ say_or_calc}
@@ -99,18 +99,18 @@ print = { "say " ~ string_literal ~ ("<-" ~ args)?}
 lambda = {("embed" ~ type_def? ~ ("<-" ~ ft_pars)? ~ (do_or_return)) | "(" ~lambda ~ ")"}
 cast = {"cast " ~ (((args)? ~ "->" ~ (lambda | identifier) | ((lambda | identifier) ~ "<-" ~ args)))}
 
-jjs = _{ indent | NEWLINE}
+jjs = _{ indent | newline}
 element_ident = {identifier ~ ":"}
 ritual_args = {(element_ident? ~ say_or_calc) ~ jjs* ~ ("," ~ jjs* ~ (element_ident? ~ say_or_calc))*}
 ritual_const = { identifier ~"{" ~ jjs* ~ ritual_args* ~jjs* ~"}"}
-ritual_pars = { (":" ~ NEWLINE ~ PEEK_ALL ~ indent ~  element_ident ~ typee ~ (NEWLINE ~ PEEK_ALL ~ indent ~ (element_ident ~ typee)?)*)
+ritual_pars = { (":" ~ newline ~ PEEK_ALL ~ indent ~  element_ident ~ typee ~ (newline ~ PEEK_ALL ~ indent ~ (element_ident ~ typee)?)*)
 				| ("{" ~ jjs* ~ (typee ~ ("," ~ jjs* ~  (typee))* )* ~jjs* ~"}" )}
 ritual_dec = {decoration? ~ "ritual " ~ identifier ~ ritual_pars?}
 
 
 
-n_doo =  _{":" ~ NEWLINE ~  PEEK_ALL ~ in_ctx ~ ctx ~ (rtrn |  dec_or_say)? ~ DROP ~ doo? ~ DROP}
-doo = _{ NEWLINE ~ (PEEK_ALL ~ ctx ~ ( (rtrn |  dec_or_say )? ~ doo?) ~ DROP | doo)}
+n_doo =  _{":" ~ newline ~  PEEK_ALL ~ in_ctx ~ ctx ~ (rtrn |  dec_or_say)? ~ DROP ~ doo? ~ DROP}
+doo = _{ newline ~ (PEEK_ALL ~ ctx ~ ( (rtrn |  dec_or_say )? ~ doo?) ~ DROP | doo)}
 ctx = {PUSH(indent*)}
 in_ctx = {PUSH(indent)}
 say = _{lambda | cast | randomness | print | literals | "(" ~ sigil_asg ~ ")" | "(" ~say ~")"}
@@ -122,6 +122,6 @@ calc = _{  transmute | ternary | binary_calc | post | pre | neg | not | sign | u
 dec_or_say = _{cond | breaking | (&lambda ~ say) | (&cast ~say) | sigil_asg | (&print ~ say) | post | pre | (!(identifier | literals) ~ say) | ( "(" ~dec_or_say ~ ")") }
 in_file_dec = _{spell_dec | attach | ritual_dec | dec_or_say}
 
-
-doc = _{indent* ~ COMMENT ~doc | NEWLINE ~ indent* ~ doc | (((ctx ~  in_file_dec ) ~ DROP ~ (NEWLINE ~ doc | EOI))*)}
+newline = {NEWLINE}
+doc = _{indent* ~ COMMENT ~doc | newline ~ indent* ~ doc | (((ctx ~  in_file_dec ) ~ DROP ~ (newline ~ doc | EOI))*)}
 file = _{SOI ~ doc ~ EOI}
