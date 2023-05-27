@@ -1,4 +1,5 @@
-use crate::ast::*;
+use super::ast::*;
+
 use core::panic;
 use pest::{
     error::Error,
@@ -8,7 +9,7 @@ use pest::{
 use std::{collections::HashMap, fs, path::Path};
 
 #[derive(Parser)]
-#[grammar = "grammar.pest"]
+#[grammar = "old/grammar.pest"]
 pub struct EnsourceLParser;
 
 #[derive(Clone, Debug)]
