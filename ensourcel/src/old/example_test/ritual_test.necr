@@ -1,0 +1,9 @@
+attach necr ritual_test2
+mine ritual Tech:
+	cat : Cat
+	brand : Brand
+
+mine ritual Cat:
+	name : str
+	age : i32
+	tech : Tech*

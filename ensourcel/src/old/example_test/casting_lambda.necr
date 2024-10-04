@@ -1,0 +1,6 @@
+cast d100 -> embed : i32 <- d:i32:
+	if d < 50:
+		-> d
+	else:
+		-> 50
+

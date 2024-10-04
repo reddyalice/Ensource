@@ -1,0 +1,31 @@
+
+
+hex = 0x12a
+i = i[1]
+spell a <- i:Cat -> s
+i = transmute f32 * of 1+1
+i += 1
+	t = dice 100.
+	i++
+	a = sign i
+	crystal a ^= 1
+	a = ( a ? 2 : 3)
+		spell : i32 sadas -> cast y -> a
+	attach necr a
+	@ test comments
+	golem crystal a : str = "sad" @ me too buddy me too @
+	cast asd -> @ mid work comment @ asd
+	if t:
+		if t:
+				v : i32, d : f32 = 1,.1
+					->dfs
+
+i: ufloat32[0,1,3] = -4 + 5 +-5-5
+entropic sigil sg
+ritual test{i32,f64}
+ritual test2:
+	v : test[2,4]
+	a : i64
+ a = test{ a, 
+      r: $0 }
+attach necr a as b

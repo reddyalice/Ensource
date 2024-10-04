@@ -1,0 +1,199 @@
+scroll = {SOI ~ scroll_content ~ EOI}
+scroll_content = _{
+    indent* ~ COMMENT ~ scroll_content 
+    | NEWLINE ~ indent* ~ scroll_content 
+    | (((PUSH(indent*) ~  scroll_statements ) ~ DROP ~ (NEWLINE ~ scroll_content | EOI))*)}
+
+
+//arguments and parameters
+args = {exprs ~ ("," ~ exprs)*}
+pars = {identifier ~ (":" ~ type)? ~("," ~ identifier ~ (":" ~ type)?)*}
+
+//keywords
+spell_keyword = { ("spell" | "⛤" |"⛧")}
+ritual_keyword = {("ritual" | "⬟" | "⬠" )}
+circle_keyword = {("circle" | "◯" | "○")}
+sigil_keyword = {("sigil" | "⏣" |  "⌾" | "⊛")}
+cast_keyword = {("cast")}
+rune_keyword = {("rune" | "⫱")}
+recipe_keyword = {("recipe" | "📰")}
+attach_keyword = {("attach" | "📎")}
+hotload_keyword = {("hotload" | "🔥")}
+layline_keyword = {("layline" | "🎆")}
+return_keyword = {("->" | "⊸")}
+in_keyword = {("<-" | "<|")}
+self_keyword = {("self")}
+match_keyword = {("match" | "|>" |"⤠")}
+if_keyword = {("if")}
+else_keyword = {("else")}
+sign_keyword = {("sign")}
+unsign_keyword = {("unsign")}
+scroll_keyword = {("scroll" | "📜")}
+orchestrio_keyword = {("orchestrio" | "🎼")}
+say_keyword = {("say" | "chant")}
+random_keyword = {("entropy" | "dice")}
+
+file_types = _{scroll_keyword | orchestrio_keyword}
+malleability = {"crystal" | "cryst" | "fluid" | "fld"}
+visibility = {"forall" | "mine"}
+
+//print
+print = { say_keyword ~ string_literal ~ ("<-" ~ args)?}
+
+//primitives
+
+float_primitive = @{"u"? ~ ("float" | "f") ~ integer_literal?}
+int_primitive = @{"u"? ~ ("int" | "i") ~ integer_literal?}
+fixed_primitive = @{"u"? ~ ("fixed" | "fx") ~ integer_literal?}
+qbit_primitive = @{"qbit" ~ integer_literal?}
+sizable_primitives = _{float_primitive | int_primitive | fixed_primitive | qbit_primitive}
+
+vec_primitive = @{("vector"| "vec") ~ integer_literal? ~ sizable_primitives}
+mat_primitive = @{"matrix" | "mat" ~ (integer_literal ~ "x" ~ integer_literal)? ~ sizable_primitives}
+dimensional_primitive = _{vec_primitive | mat_primitive}
+
+
+array = {"[" ~integer_literal ~ "]"}
+arrow_type = {"<" ~ type ~ ("," ~type)* ~ ">"}
+sized_primitive = @{"byte" | "char" | "bool"}
+dynamically_sized_primitive = @{"string" | "str" | "list" | "map" | "linkedlist" | "set"}
+spell_type = {
+    (
+        ((spell_keyword ~ ":" ~ (ritual_type ))) ~ 
+        (in_keyword ~(self_keyword | type) ~ ("," ~ (self_keyword | type))*)?
+    )
+    |
+    (
+        ((spell_keyword ~ ":")?  ~ (("(" ~ spell_type ~ ")") | spell_keyword))
+             ~ (in_keyword ~(self_keyword | type) ~ ("," ~ (self_keyword | type))*)?
+    )
+    |
+    (
+        ((spell_keyword ~ ":")?  ~ primitive_type)
+             ~ (in_keyword ~(self_keyword | type) ~ ("," ~ (self_keyword | type))*)
+    )
+}
+ritual_type = {ritual_keyword ~ (in_keyword ~ (self_keyword | type) ~ ("," ~ (self_keyword | type))*)? }
+primitive_type = {sign_keyword? ~ (sizable_primitives | dimensional_primitive | sized_primitive | dynamically_sized_primitive | identifier) ~  arrow_type? ~ array*}
+type = {ritual_type | spell_type | file_types | primitive_type}
+
+
+//literals
+literals = _{bool_literal | string_literal | hex_literal | float_literal | char_literal | integer_literal | global_arg | dot_operation | identifier | "(" ~ literals ~ ")"}
+
+integer_literal = @{ASCII_DIGIT+}
+char_literal = @{"'" ~ ANY  ~ "'"}
+float_literal = @{ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* | "." ~ ASCII_DIGIT+}
+bool_literal = @{"true" | "false" }
+string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+hex_literal = @{"0x" ~ ASCII_HEX_DIGIT+} 
+
+//math functions
+
+math_funcs = _{const_pi | const_tau | const_e | tan | cot | sin | cos | atan | acot | asin | acos | tanh | coth | sinh | cosh | sqrt | derivate | integrate}
+
+const_pi = {"const pi" | "π"}
+const_tau = {"const tau" | "τ"}
+const_e = {"const e"}
+tan = {"tan" ~ exprs}
+cot = {"cot" ~ exprs}
+sin = {"sin" ~ exprs}
+cos = {"cos" ~ exprs}
+asin = {"asin" ~ exprs}
+acos = {"acos" ~ exprs}
+atan = {"atan" ~ exprs}
+acot = {"acot" ~ exprs}
+sinh = {"sinh" ~ exprs}
+cosh = {"cosh" ~ exprs}
+tanh = {"tanh" ~ exprs}
+coth = {"coth" ~ exprs}
+sqrt = {"sqrt" ~ exprs}
+integrate = {"integrate" ~ exprs ~ "d(" ~ identifier ~ ")"}
+derivate = {"derivate" ~ exprs ~ "d(" ~ identifier ~ ")"}
+
+randomness = { random_keyword ~
+    (
+        (int_primitive ~ integer_literal? ~integer_literal?)
+        |
+        (float_primitive ~ float_literal? ~ float_literal?)
+        |
+        (vec_primitive)
+        |
+        (mat_primitive)
+    )
+}
+ 
+//identifiers
+global_arg = @{"$" ~ ASCII_DIGIT+}
+
+identifier = @{ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
+
+//sigil
+sigil_creation = {sigil_keyword ~ identifier ~ arrow_type? ~ ":" ~ sigil_context+}
+sigil_context = _{ newline ~ PEEK_ALL ~ in_ctx  ~ sigil_element ~DROP | newline ~ indent* ~ sigil_context}
+sigil_element  = {identifier ~ ":" ~ type}
+
+
+//atachment
+attachment_types = _{attach_keyword | layline_keyword | layline_keyword}
+attach = {attachment_types ~ file_types ~ identifier ~ (return_keyword ~ identifier)?}
+
+//operations
+binary_op_ident = @{((!(" " | "=" | "." ) ~ ANY)+)}
+assign_op_ident = @{((!(" " | "=" | "." ) ~ ANY)+) ~ "="}
+
+and = {"&&" | "and"}
+or = {"||" | "or"}
+bigger = {">" | "above" }
+lesser = {"<" | "below" }
+equal = {"==" | "is"}
+not_equal = {"!=" | "is not"}
+b_equal = {">="}
+l_equal = {"<="}
+
+incr = _{"++"}
+decr = _{"--"}
+
+binary_ops = _{ boolean_ops | binary_op_ident}
+assign_ops = _{ assign_op_ident}
+
+boolean_ops = _{ and | or | b_equal | l_equal | bigger | lesser | equal | not_equal}
+binary_calc = {exprs_for_binary_calc ~ (binary_ops ~ exprs)+}
+not = {"!" ~ exprs}
+neg = {"-" ~ exprs}
+unsign = {unsign_keyword ~ exprs}
+dot_operation = {(identifier | "(" ~dot_operation ~ ")") ~ "." ~ (dot_operation+ | identifier) | "(" ~dot_operation ~ ")" }
+key = {exprs}
+get_element = {exprs_for_get_element ~ ("[" ~ key ~  "]")+}
+terrinary__op = {if_keyword ~exprs ~ ":" ~ exprs ~ else_keyword ~ exprs}
+
+//conditionals
+
+
+//spell
+spell_decleration = {visibility? ~ spell_keyword ~ (":" ~type)? ~ identifier ~ (in_keyword ~ spell_pars)? ~ (return | ":" ~ spell_content+)}
+spell_pars = _{identifier ~ (":" ~ type) ~("," ~ identifier ~ (":" ~ type))*}
+spell_content = {newline ~ PEEK_ALL ~ in_ctx  ~ exprs ~DROP | newline ~ indent* ~ spell_content}
+
+//rune assignment
+rune_pars = {dot_operation ~("," ~ dot_operation)*
+            | pars}
+rune_assignment = {(malleability? ~ rune_keyword? ~ pars ~ "="  ~ args) | (rune_pars ~ (assign_ops | "=") ~ args)}
+
+//casting
+cast = {cast_keyword? ~ (dot_operation | identifier) ~ in_keyword ~ args?}
+
+//expressions
+return = {return_keyword ~ exprs}
+shared = _{attach | print | rune_assignment | cast | "(" ~ shared ~ ")"}
+exprs = _{return | get_element | binary_calc | randomness | not | neg | unsign | math_funcs | shared | literals}
+exprs_for_get_element = _{return | randomness | not | neg | unsign | math_funcs | shared | literals}
+exprs_for_binary_calc = _{return | get_element | randomness | not | neg | unsign | math_funcs | shared | literals}
+scroll_statements  = _{spell_decleration | sigil_creation | shared}
+
+
+in_ctx = _{PUSH(indent+)}
+indent = _{ "\t"}
+newline = {NEWLINE}
+WHITESPACE = _{" "}
+COMMENT = _{"@" ~ (!("@" | newline) ~ANY)* ~ ("@" | newline)}

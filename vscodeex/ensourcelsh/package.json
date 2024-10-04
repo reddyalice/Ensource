@@ -1,0 +1,25 @@
+{
+  "name": "ensourcelsh",
+  "displayName": "EnsourceL Syntax Highlighter",
+  "description": "EnsourceL Syntax Highlighter",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.73.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "ensourcel",
+      "aliases": ["EnsourceL", "ensourcel"],
+      "extensions": [".necr",".sorc",".wiza"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "ensourcel",
+      "scopeName": "source.necr",
+      "path": "./syntaxes/ensourcel.tmLanguage.json"
+    }]
+  }
+}
